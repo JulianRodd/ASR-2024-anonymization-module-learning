@@ -6,15 +6,13 @@ from functools import partial
 from pathlib import Path
 
 import librosa
-import numpy as np
 import optuna as op
 import soundfile as sf
-import speech_recognition as sr
-
-from jiwer import wer
 
 # multiprocess
 from joblib import Parallel, delayed
+from scripts.asr.inference import loss_asr
+from scripts.asv.inference import loss_asv
 from voice_modification import (
     chorus,
     clipping,
@@ -23,84 +21,6 @@ from voice_modification import (
     vp_baseline2,
     vtln,
 )
-
-
-def transcribe_audio(audio_file_path):
-    recognizer = sr.Recognizer()
-    try:
-        with sr.AudioFile(audio_file_path) as source:
-            audio_data = recognizer.record(source)
-        text = recognizer.recognize_google(audio_data)
-        return text
-    except sr.UnknownValueError:
-        # Log the error or handle it as appropriate
-        return ""
-
-
-def loss_asr(lst_fn, ground_truth_texts):
-    total_wer = 0
-    for audio_file, ground_truth in zip(lst_fn, ground_truth_texts):
-        transcribed_text = transcribe_audio(audio_file)
-        total_wer += wer(ground_truth, transcribed_text)
-    average_wer = total_wer / len(lst_fn)
-    return average_wer
-
-
-def simulate_asv_system(audio_file, speaker_models):
-    """
-    Simulate the processing of an audio file through an ASV system.
-    This function is a placeholder for actual ASV system processing.
-
-    Args:
-        audio_file (str): Path to the audio file.
-        speaker_models (dict): A dictionary of speaker models.
-
-    Returns:
-        dict: A dictionary containing 'genuine' and 'impostor' scores for the audio file.
-    """
-    # This is a dummy implementation and should be replaced with actual ASV system calls.
-    # Assume each output score is a random value between 0 and 1,
-    # where a higher score means higher similarity.
-    import random
-    genuine_score = random.random()
-    impostor_scores = [random.random() for _ in speaker_models]
-    
-    return {'genuine': genuine_score, 'impostor': max(impostor_scores)}
-
-def compute_eer(scores):
-    """
-    Compute the Equal Error Rate (EER) from ASV system scores.
-
-    Args:
-        scores (list): A list of dictionaries with 'genuine' and 'impostor' scores.
-
-    Returns:
-        float: The EER value.
-    """
-    from sklearn.metrics import roc_curve
-    y_true = [1] * len(scores) + [0] * len(scores)  # 1 for genuine, 0 for impostor
-    y_scores = [score['genuine'] for score in scores] + [score['impostor'] for score in scores]
-
-    fpr, tpr, thresholds = roc_curve(y_true, y_scores)
-    eer = fpr[np.nanargmin(np.absolute((1 - tpr) - fpr))]
-    
-    return eer
-
-def loss_asv(lst_fn, speaker_models):
-    """
-    Compute the negative EER for a list of anonymized audio files.
-
-    Args:
-        lst_fn (list): List of filenames of anonymized audio.
-        speaker_models (dict): A dictionary of speaker models.
-
-    Returns:
-        float: The negative EER (i.e., 1 - EER).
-    """
-    asv_system_results = [simulate_asv_system(fn, speaker_models) for fn in lst_fn]
-    eer = compute_eer(asv_system_results)
-    
-    return 1.0 - eer
 
 
 # cascaded voice modification modules
@@ -158,7 +78,7 @@ def objective(trial, params, wav, weight_asv=1.0, fs=16000, n_jobs=-1, tempdir="
 
     # save anonymize speech
     fn_lst = [str(Path(tempdir).joinpath(f + ".wav")) for f in wav.keys()]
-    fn_lst_ground_truth = ['please call stella']
+    fn_lst_ground_truth = ["please call stella"]
     Parallel(n_jobs=n_jobs)(
         [delayed(sf.write)(f, w, fs, "PCM_16") for f, w in zip(fn_lst, wav_anon)]
     )
