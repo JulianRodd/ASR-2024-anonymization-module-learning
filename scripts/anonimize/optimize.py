@@ -9,10 +9,9 @@ import librosa
 import optuna as op
 import soundfile as sf
 
+
 # multiprocess
 from joblib import Parallel, delayed
-from scripts.asr.inference import loss_asr
-from scripts.asv.inference import loss_asv
 from voice_modification import (
     chorus,
     clipping,
@@ -21,6 +20,17 @@ from voice_modification import (
     vp_baseline2,
     vtln,
 )
+
+
+from speechbrain.inference import EncoderDecoderASR
+
+from speechbrain.inference import EncoderDecoderASR
+
+asr_model = EncoderDecoderASR.from_hparams(source="speechbrain/asr-conformer-transformerlm-librispeech", savedir="pretrained_models/asr-transformer-transformerlm-librispeech")
+asr_model.lo
+def transcribe(wav):
+    return asr_model.transcribe_file(wav)
+
 
 
 # cascaded voice modification modules
@@ -65,31 +75,35 @@ def objective(trial, params, wav, weight_asv=1.0, fs=16000, n_jobs=-1, tempdir="
       score (float): objective value
     """
 
-    # make dir
-    Path(tempdir).mkdir(exist_ok=True, parents=True)
-
     # setup parameters
     params = {k: trial.suggest_uniform(k, v[0], v[1]) for k, v in params.items()}
 
+    print(wav.keys())
+    
+    
+    fn_lst_ground_truth = [transcribe(f"../../data/vctk/{f}.wav") for f in wav.keys()]
+    print(fn_lst_ground_truth)
     # anonymize
     wav_anon = Parallel(n_jobs=n_jobs)(
         [delayed(anonymize)(w, fs, **params) for w in wav.values()]
     )
 
     # save anonymize speech
-    fn_lst = [str(Path(tempdir).joinpath(f + ".wav")) for f in wav.keys()]
-    fn_lst_ground_truth = ["please call stella"]
+    fn_lst = [transcribe(str(Path(tempdir).joinpath(f + ".wav")) for f in wav.keys())]
+    
     Parallel(n_jobs=n_jobs)(
         [delayed(sf.write)(f, w, fs, "PCM_16") for f, w in zip(fn_lst, wav_anon)]
     )
 
-    # compute total score
-    score = loss_asr(fn_lst, fn_lst_ground_truth) + weight_asv * loss_asv(fn_lst)
+
+
+    # # compute total score
+    # score = loss_asr(fn_lst, fn_lst_ground_truth) + weight_asv * loss_asv(fn_lst)
 
     # remove dir
     shutil.rmtree(tempdir)
 
-    return score
+    return 0
 
 
 if __name__ == "__main__":

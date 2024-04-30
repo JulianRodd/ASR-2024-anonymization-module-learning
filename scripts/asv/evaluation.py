@@ -3,10 +3,10 @@ import time
 import numpy as np
 import torch
 
-import scripts.asv.dataset as dataset
-import scripts.asv.feature_extraction as feature_extraction
-import scripts.asv.myconfig as myconfig
-import scripts.asv.neural_net as neural_net
+import dataset as dataset
+import feature_extraction as feature_extraction
+import myconfig as myconfig
+import neural_net as neural_net
 
 def run_inference(features, encoder, full_sequence=myconfig.USE_FULL_SEQUENCE_INFERENCE):
     """Get the embedding of an utterance using the encoder."""
@@ -98,6 +98,7 @@ def run_eval():
     """Run evaluation of the saved model on test data."""
     start_time = time.time()
     spk_to_utts =  dataset.get_librispeech_speaker_to_utterance(myconfig.TEST_DATA_DIR)
+    print(spk_to_utts)
     print("Evaluation data:", myconfig.TEST_DATA_DIR)
     encoder = neural_net.get_speaker_encoder('scripts/asv/saved_model/saved_model_20230514232827.pt')
     labels, scores = compute_scores(encoder, spk_to_utts, myconfig.NUM_EVAL_TRIPLETS)

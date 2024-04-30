@@ -4,8 +4,9 @@ import os
 
 import torch
 
-TRAIN_DATA_DIR = '../data/librispeech/train/dev-clean'
-TEST_DATA_DIR = '../data/librispeech/test/test-clean'
+TRAIN_DATA_DIR = '../../data/librispeech/train/dev-clean'
+
+TEST_DATA_DIR = "../../data/librispeech/test/test-clean"
 
 timestamp = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
 filename = f"saved_model_{timestamp}.pt"

@@ -4,11 +4,11 @@ import librosa
 import numpy as np
 import torch
 
-import scripts.asv.dataset as dataset
+import dataset as dataset
 import soundfile as sf
 
-import scripts.asv.myconfig as myconfig
-import scripts.asv.specaug as specaug
+import myconfig as myconfig
+import specaug as specaug
 
 
 def extract_features(audio_file):
