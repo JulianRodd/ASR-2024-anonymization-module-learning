@@ -1,8 +1,3 @@
-import os
-import shutil
-from datasets import load_dataset
-import torchaudio
-
 def get_audio_data_wavs():
     # dataset_path = 'data/huggingface/wavs'
     # os.makedirs(dataset_path, exist_ok=True)  # Ensure the directory exists
@@ -25,11 +20,28 @@ def get_audio_data_wavs():
     #     file_paths.append(destination_file_path)
 
     # return file_paths
-    
-    return ['data/vctk/p225_001.wav', 'data/vctk/p225_002.wav', 'data/vctk/p226_001.wav', 'data/vctk/p226_002.wav', 'data/vctk/p227_001.wav']
+    wavs = [
+        "data/vctk/p225_001.wav",
+        "data/vctk/p225_002.wav",
+        "data/vctk/p226_001.wav",
+        "data/vctk/p226_002.wav",
+        "data/vctk/p227_001.wav",
+    ]
+    transcriptions = [
+        "please call Stella",
+        "ask her to bring these things with her from the store",
+        "please call Stella",
+        "ask her to bring these things with her from the store",
+        "please call Stella",
+    ]
+    return wavs, transcriptions
+
 
 # Example of usage
 if __name__ == "__main__":
     audio_files = get_audio_data_wavs()
     print(f"Total audio files retrieved: {len(audio_files)}")
-    print("Sample audio file path:", audio_files[0] if audio_files else "No files downloaded.")
+    print(
+        "Sample audio file path:",
+        audio_files[0] if audio_files else "No files downloaded.",
+    )
