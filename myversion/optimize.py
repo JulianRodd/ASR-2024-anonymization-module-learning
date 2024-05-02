@@ -71,22 +71,22 @@ def optimize_params(trial):
     """Define and apply hyperparameter optimization."""
     params = {
         "vtln": trial.suggest_float(
-            "vtln", -0.01, 0.01
+            "vtln", -0.05, 0.05
         ),  # Reduced range for Vocal Tract Length Normalization
         "resampling": trial.suggest_float(
-            "resampling", 0.09, 0.11
+            "resampling", 0.95, 1.05
         ),  # Closer to normal speed to avoid distorting the speech too much
         "vp_baseline2": trial.suggest_float(
-            "vp_baseline2", 0.09, 0.11
+            "vp_baseline2", 0.9, 1.1
         ),  # Subtle pitch and formant shifting
         "modspec": trial.suggest_float(
-            "modspec", 0.005, 0.015
+            "modspec", 0.05, 0.15
         ),  # Lesser modulation spectrum smoothing
         "clipping": trial.suggest_float(
-            "clipping", 0.05, 0.07
+            "clipping", 0.5, 0.7
         ),  # Avoid aggressive clipping to preserve dynamics
         "chorus": trial.suggest_float(
-            "chorus", 0.0, 0.01
+            "chorus", 0.0, 0.1
         ),  # Reduced effect depth to minimize voice 'doubling' which can confuse ASR
     }
 

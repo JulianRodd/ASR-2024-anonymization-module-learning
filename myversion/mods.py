@@ -1,126 +1,52 @@
 #!/usr/bin/env python3
-import copy
+import numpy as np
 import tempfile
-
+import copy
 import librosa
 import librosa as rs
-import numpy as np
-import scipy
-import soundfile as sf
 from audiotsm import wsola
 from audiotsm.io.wav import WavReader, WavWriter
+import soundfile as sf
+import scipy
 from scipy import signal
-from scipy.signal import lfilter, resample
+from scipy.io import wavfile
+from scipy.signal import resample, lfilter
 
+# vocal tract length normalization
+def vtln(x, coef = 0.):
+  # STFT
+  mag, phase = rs.magphase(rs.core.stft(x))
+  mag, phase = np.log(mag).T, phase.T
 
-def vtln(x, coef=0.0):
-    # STFT
-    stft_result = rs.core.stft(x)
-    mag, phase = rs.magphase(stft_result)
-    # Adding a small constant to the magnitude before taking the logarithm
-    log_spec = np.log(
-        mag + 1e-10
-    ).T  # 1e-10 is an arbitrary small number to prevent log(0)
-    phase = phase.T
+  # Frequency
+  freq = np.linspace(0, np.pi, mag.shape[1]) 
+  freq_warped = freq + 2.0 * np.arctan(coef * np.sin(freq) / (1 - coef * np.cos(freq)))
+  
+  # Warping
+  mag_warped = np.zeros(mag.shape, dtype = mag.dtype)
+  for t in range(mag.shape[0]):
+    mag_warped[t, :] = np.interp(freq, freq_warped, mag[t, :])
 
-    # Frequency
-    freq = np.linspace(0, np.pi, log_spec.shape[1])
-    freq_warped = freq + 2.0 * np.arctan(
-        coef * np.sin(freq) / (1 - coef * np.cos(freq))
-    )
+  # ISTFT
+  y = np.real(rs.core.istft(np.exp(mag_warped).T * phase.T)).astype(x.dtype)
 
-    # Warping
-    mag_warped = np.zeros(log_spec.shape, dtype=log_spec.dtype)
-    for t in range(log_spec.shape[0]):
-        mag_warped[t, :] = np.interp(freq, freq_warped, log_spec[t, :])
-
-    # ISTFT
-    y = np.real(rs.core.istft(np.exp(mag_warped).T * phase.T)).astype(x.dtype)
-
-    return y
-
-
-def modspec_smoothing(x, coef=0.1):
-    if not np.all(np.isfinite(x)):
-        x = np.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
-
-    # STFT
-    mag_x, phase_x = rs.magphase(rs.core.stft(x))
-    # Prevent log(0) by adding a small constant
-    log_mag_x = np.log(mag_x + 1e-10).T
-    phase_x = phase_x.T
-
-    # Smoothing trajectory
-    mag_x_smoothed = _trajectory_smoothing(log_mag_x, coef)
-
-    # ISTFT
-    y = np.real(rs.core.istft(np.exp(mag_x_smoothed).T * phase_x.T)).astype(x.dtype)
-
-    # Normalize safely
-    norm_factor = np.sqrt(np.sum(y * y))
-    if norm_factor > 0:  # Ensure the denominator is not zero
-        y *= np.sqrt(np.sum(x * x)) / norm_factor
-    else:
-        y *= 0  # If y is silent, just set it to zero
-
-    return y
-
+  return y
 
 # resampling
-def resampling(x, coef=1.0, fs=16000):
-    fn_r, fn_w = tempfile.NamedTemporaryFile(
-        mode="r", suffix=".wav"
-    ), tempfile.NamedTemporaryFile(mode="w", suffix=".wav")
+def resampling(x, coef = 1., fs = 16000):
+  fn_r, fn_w = tempfile.NamedTemporaryFile(mode="r", suffix=".wav"), tempfile.NamedTemporaryFile(mode="w", suffix=".wav")  
 
-    sf.write(fn_r.name, x, fs, "PCM_16")
-    with WavReader(fn_r.name) as fr:
-        with WavWriter(fn_w.name, fr.channels, fr.samplerate) as fw:
-            tsm = wsola(
-                channels=fr.channels,
-                speed=coef,
-                frame_length=256,
-                synthesis_hop=int(fr.samplerate / 70.0),
-            )
-            tsm.run(fr, fw)
+  sf.write(fn_r.name, x, fs, "PCM_16")
+  with WavReader(fn_r.name) as fr:
+    with WavWriter(fn_w.name, fr.channels, fr.samplerate) as fw:
+      tsm = wsola(channels = fr.channels, speed = coef, frame_length = 256, synthesis_hop = int(fr.samplerate / 70.0))
+      tsm.run(fr, fw)
+  
+  y = resample(librosa.load(fn_w.name)[0], len(x)).astype(x.dtype)
+  fn_r.close()
+  fn_w.close()
 
-    y = resample(librosa.load(fn_w.name)[0], len(x)).astype(x.dtype)
-    fn_r.close()
-    fn_w.close()
-
-    return y
-
-
-def lpc(signal, order):
-    """Compute the Linear Predictive Coefficients.
-    Returns the order+1 LPC coefficients for the signal, computed using the
-    Levinson-Durbin algorithm.
-    """
-    # Number of autocorrelation lags
-    n = order + 1
-
-    # Compute autocorrelation
-    r = np.correlate(signal, signal, mode="full")
-    r = r[len(signal) - 1 : len(signal) - 1 + n]
-
-    # Initialize arrays
-    a = np.zeros(n)
-    E = np.zeros(n)
-    k = np.zeros(n)
-
-    # Initialize recursion
-    a[0] = 1
-    E[0] = r[0]
-
-    # Durbin's recursion
-    for i in range(1, n):
-        k[i] = -np.dot(a[:i], r[i:0:-1]) / E[i - 1]
-        a[i] = k[i]
-        for j in range(1, i):
-            a[j] = a[j] + k[i] * a[i - j]
-        E[i] = (1 - k[i] ** 2) * E[i - 1]
-
-    return a
-
+  return y
 
 # Mcadams transformation: Baseline2 of VoicePrivacy2020
 def vp_baseline2(x, mcadams = 0.8, winlen = int(20 * 0.001 * 16000), shift = int(10 * 0.001 * 16000), lp_order = 20):
@@ -187,47 +113,43 @@ def vp_baseline2(x, mcadams = 0.8, winlen = int(20 * 0.001 * 16000), shift = int
   y = y/np.max(np.abs(y))
   return y.astype(x.dtype)
 
-def _trajectory_smoothing(x, thresh=0.5):
-    y = copy.copy(x)
+def _trajectory_smoothing(x, thresh = 0.5):
+  y = copy.copy(x)
 
-    b, a = signal.butter(2, thresh)
-    for d in range(y.shape[1]):
-        y[:, d] = signal.filtfilt(b, a, y[:, d])
-        y[:, d] = signal.filtfilt(b, a, y[::-1, d])[::-1]
+  b, a = signal.butter(2, thresh)
+  for d in range(y.shape[1]):
+    y[:, d] = signal.filtfilt(b, a, y[:, d])
+    y[:, d] = signal.filtfilt(b, a, y[::-1, d])[::-1]
 
-    return y
+  return y
 
+# modulation spectrum smoothing
+def modspec_smoothing(x, coef = 0.1):
+  # STFT
+  mag_x, phase_x = rs.magphase(rs.core.stft(x))
+  mag_x, phase_x = np.log(mag_x).T, phase_x.T
+  mag_x_smoothed = _trajectory_smoothing(mag_x, coef)
 
-def clipping(x, thresh=0.5):
-    # Replace non-finite values with zero
-    x = np.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
+  # ISTFT
+  y = np.real(rs.core.istft(np.exp(mag_x_smoothed).T * phase_x.T)).astype(x.dtype)
+  y = y * np.sqrt(np.sum(x * x)) / np.sqrt(np.sum(y * y))
+  
+  return y
 
-    # Compute the histogram on the absolute values of x
-    hist, bins = np.histogram(np.abs(x), 1000)
-    hist = np.cumsum(hist)
+# waveform clipping
+def clipping(x, thresh = 0.5):
+  hist, bins = np.histogram(np.abs(x), 1000)
+  hist = np.cumsum(hist)
+  abs_thresh = bins[np.where(hist >= min(max(0., thresh), 1.) * np.amax(hist))[0][0]]
 
-    # Determine the threshold for clipping based on the histogram
-    abs_thresh = bins[
-        np.where(hist >= min(max(0.0, thresh), 1.0) * np.amax(hist))[0][0]
-    ]
+  y = np.clip(x, - abs_thresh, abs_thresh)
+  y = y * np.divide(np.sqrt(np.sum(x * x)), np.sqrt(np.sum(y * y)), out=np.zeros_like(np.sqrt(np.sum(x * x))), where=np.sqrt(np.sum(y * y))!=0)
 
-    # Clip values that are outside [-abs_thresh, abs_thresh]
-    y = np.clip(x, -abs_thresh, abs_thresh)
-
-    # Normalize the clipped waveform to maintain the original energy
-    y = y * np.divide(
-        np.sqrt(np.sum(x * x)),
-        np.sqrt(np.sum(y * y)),
-        out=np.zeros_like(np.sqrt(np.sum(x * x))),
-        where=np.sqrt(np.sum(y * y)) != 0,
-    )
-
-    return y
-
+  return y
 
 # chorus effect
-def chorus(x, coef=0.1):
-    coef = max(0.0, coef)
-    xp, xo, xm = vtln(x, coef), vtln(x, 0.0), vtln(x, -coef)
+def chorus(x, coef = 0.1):
+  coef = max(0., coef)
+  xp, xo, xm = vtln(x, coef), vtln(x, 0.), vtln(x, - coef)
 
-    return (xp + xo + xm) / 3.0
+  return (xp + xo + xm) / 3.0
