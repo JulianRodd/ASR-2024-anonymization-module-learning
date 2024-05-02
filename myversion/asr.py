@@ -1,110 +1,111 @@
+import logging
+
+import jiwer
 import torch
 import torchaudio
-from tqdm import tqdm
 from transformers import Wav2Vec2ForCTC, Wav2Vec2Processor
-import jiwer
+
 from data import get_audio_data_wavs
-class ASRModel:
-    def __init__(self, num_labels):
-        self.processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
-        self.model = Wav2Vec2ForCTC.from_pretrained("facebook/wav2vec2-base-960h")
 
-        # Initialize new classifier
-        self.classifier = torch.nn.Linear(32, num_labels)
+# Setup basic logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
-        # Freeze the pre-trained model parameters
-        for param in self.model.parameters():
-            param.requires_grad = False
 
-        # Set the classifier to training mode initially
-        self.classifier.train()
-        print("Model, processor, and new classifier initialized for fine-tuning.")
+def load_pretrained_model():
+    """Load and return the pre-trained Wav2Vec2 model and processor."""
+    processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
+    model = Wav2Vec2ForCTC.from_pretrained("facebook/wav2vec2-base-960h")
+    model.eval()
+    logging.info("Loaded Wav2Vec2 model and processor successfully.")
+    return processor, model
 
-    def forward(self, input_values):
-        # Getting the output from the Wav2Vec2 model
-        output = self.model(input_values.squeeze(1))
-        logits = output.logits
-        # Pass the model outputs through the classifier
-        logits = self.classifier(logits)
-        return logits 
 
-    def transcribe_wav_file(self, file_path):
-        self.classifier.eval()  # Ensure classifier is in evaluation mode
-        waveform, sample_rate = torchaudio.load(file_path)
-        if waveform.shape[0] > 1:
-            waveform = torch.mean(waveform, dim=0)
-        input_values = self.processor(
-            waveform, sampling_rate=sample_rate, return_tensors="pt"
-        ).input_values
-        logits = self.forward(input_values)
-        predicted_ids = torch.argmax(logits, dim=-1)
-        transcription = self.processor.decode(predicted_ids[0])
-        return transcription
+def preprocess_audio(file_path):
+    """Load, resample, and convert audio to mono."""
+    waveform, sample_rate = torchaudio.load(file_path)
+    if sample_rate != 16000:
+        waveform = torchaudio.transforms.Resample(
+            orig_freq=sample_rate, new_freq=16000
+        )(waveform)
+    if waveform.shape[0] > 1:
+        waveform = torch.mean(waveform, dim=0, keepdim=True)
+    logging.debug(f"Processed audio file {file_path} for transcription.")
+    return waveform.squeeze(0)
 
-    def finetune_model(self, transcriptions, files, n_epochs=10, learning_rate=1e-4):
-        optimizer = torch.optim.Adam(self.classifier.parameters(), lr=learning_rate)
-        loss_func = torch.nn.CTCLoss(
-            blank=self.processor.tokenizer.pad_token_id, zero_infinity=True
-        )
 
-        for epoch in range(n_epochs):
-            total_loss = 0
-            self.classifier.train()
-            for transcription, file_path in tqdm(
-                zip(transcriptions, files), total=len(files), desc="Training"
-            ):
-                self.classifier.zero_grad()
-                waveform, sample_rate = torchaudio.load(file_path)
-                if waveform.shape[0] > 1:
-                    waveform = waveform.mean(dim=0)
-                input_values = self.processor(
-                    waveform, sampling_rate=sample_rate, return_tensors="pt"
-                ).input_values
-                labels = self.processor.tokenizer(
-                    transcription, return_tensors="pt"
-                ).input_ids
+def transcribe_audio(processor, model, waveform):
+    """Transcribe audio using the loaded model and processor."""
+    input_values = processor(
+        waveform, sampling_rate=16000, return_tensors="pt"
+    ).input_values
+    with torch.no_grad():
+        logits = model(input_values).logits
+    predicted_ids = torch.argmax(logits, dim=-1)
+    transcription = processor.decode(predicted_ids[0])
+    logging.debug("Transcription complete.")
+    return transcription
 
-                logits = self.forward(input_values)
-                input_lengths = torch.full(
-                    (input_values.size(0),), logits.shape[1], dtype=torch.long
-                )
-                label_lengths = torch.tensor(
-                    [labels.shape[1]] * input_values.shape[0], dtype=torch.long
-                )
 
-                loss = loss_func(
-                    logits.log_softmax(2).permute(1, 0, 2),
-                    labels,
-                    input_lengths,
-                    label_lengths,
-                )
-                loss.backward()
-                torch.nn.utils.clip_grad_norm_(
-                    self.classifier.parameters(), 5.0
-                )
-                optimizer.step()
-                total_loss += loss.item()
-                tqdm.write(f"File: {file_path}, Loss: {loss.item()}")
+def normalized_wer(actual, predicted):
+    """
+    Compute normalized WER between actual and predicted transcriptions.
+    Handles cases where transformations might result in empty strings or lists.
+    """
+    transformation = jiwer.Compose([
+        jiwer.ToLowerCase(),
+        jiwer.RemoveMultipleSpaces(),
+        jiwer.RemovePunctuation(),
+        jiwer.Strip(),
+        jiwer.ReduceToListOfListOfWords(word_delimiter=" ")
+    ])
 
-            average_loss = total_loss / len(files)
-            print(f"Epoch {epoch + 1}/{n_epochs}, Mean Loss: {average_loss}")
+    # Ensure the input is not empty after transformation
+    if not actual.strip() or not predicted.strip():
+        return 1.0  # Return the worst score if inputs are empty or only whitespace
 
-def asr_loss(actual_transcriptions, predicted_transcriptions):
+    measures = jiwer.compute_measures(
+        actual, predicted,
+        truth_transform=transformation,
+        hypothesis_transform=transformation
+    )
+
+    wer = measures["wer"]
+    return wer
+
+def average_wer(actual_transcriptions, predicted_transcriptions):
+    """
+    Calculate the average Word Error Rate (WER) precisely, handling edge cases.
+    """
+    if len(actual_transcriptions) != len(predicted_transcriptions) or not actual_transcriptions:
+        raise ValueError("Transcription lists are empty or of unequal length.")
+
     wers = [
-        jiwer.wer(actual, predicted)
+        normalized_wer(actual, predicted) if actual and predicted else 1.0
         for actual, predicted in zip(actual_transcriptions, predicted_transcriptions)
     ]
-    average_wer = sum(wers) / len(wers)
-    return average_wer
+
+    return sum(wers) / len(wers)
+
+
+def main():
+    processor, model = load_pretrained_model()
+    files, ground_truths, _ = get_audio_data_wavs()
+
+    transcriptions = []
+    for file, truth in zip(files, ground_truths):
+        waveform = preprocess_audio(file)
+        transcription = transcribe_audio(processor, model, waveform)
+        wer = normalized_wer(truth, transcription)
+        logging.info(
+            f"File: {file}, Truth: {truth}, Transcription: {transcription}, WER: {wer}"
+        )
+        transcriptions.append(transcription)
+
+    overall_wer = average_wer(ground_truths, transcriptions)
+    logging.info(f"Average Word Error Rate (WER) across all files: {overall_wer:.2f}")
+
 
 if __name__ == "__main__":
-    file_paths, transcriptions = get_audio_data_wavs()
-    num_labels = len(set(transcriptions))  # Assuming labels are the second tuple element
-    asr = ASRModel(num_labels)
-    files, transcriptions = get_audio_data_wavs()  # Assuming this returns correct data
-    asr.finetune_model(transcriptions, files)
-
-    # Testing the fine-tuned model
-    transcription = asr.transcribe_wav_file(files[0])
-    print("Transcription:", transcription)
-    print("ASR Loss:", asr_loss([transcriptions[0]], [transcription]))
+    main()

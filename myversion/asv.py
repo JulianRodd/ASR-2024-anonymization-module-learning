@@ -34,7 +34,7 @@ class SpeakerVerificationModel:
         criterion = nn.CrossEntropyLoss()
 
         for epoch in range(n_epochs):  # Number of epochs
-            print("Starting epoch {}/10".format(epoch + 1))
+            print("Starting epoch {}/{}".format(epoch + 1, n_epochs))
             losses = []
             for file, label in tqdm(zip(files, speaker_labels), total=len(files), desc="Training"):
                 waveform, sample_rate = torchaudio.load(file)

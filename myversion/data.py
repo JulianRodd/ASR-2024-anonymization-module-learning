@@ -34,7 +34,9 @@ def get_audio_data_wavs():
         "ask her to bring these things with her from the store",
         "please call Stella",
     ]
-    return wavs, transcriptions
+    
+    speakers = [int(file.split("/")[-1].split("_")[0][1:]) - 225 for file in wavs]
+    return wavs, transcriptions, speakers
 
 
 # Example of usage
