@@ -1,6 +1,15 @@
 import os
 from datasets import load_dataset
 from pydub import AudioSegment
+def normalize_sequence(seq):
+    # Create a mapping from the unique sorted values to a range of consecutive numbers
+    unique_values = sorted(set(seq))
+    mapping = {value: idx for idx, value in enumerate(unique_values)}
+
+    # Replace each element in the original sequence with its new value
+    normalized_seq = [mapping[value] for value in seq]
+
+    return normalized_seq
 
 def get_audio_data_wavs():
     dataset_path = 'data/vctk'
@@ -9,8 +18,8 @@ def get_audio_data_wavs():
     # Load the dataset from Hugging Face
     dataset = load_dataset('vctk', split='train')
 
-    # We'll take a subset for example purposes, e.g., first 100 samples
-    dataset = dataset.select(range(min(100, len(dataset))))
+    # We'll take a subset for example purposes, e.g., random 100 samples
+    dataset = dataset.shuffle(seed=42).select(range(100))
 
     file_paths = []
     transcriptions = []
@@ -28,7 +37,14 @@ def get_audio_data_wavs():
 
         file_paths.append(destination_file_path)
         transcriptions.append(data['text'])
+        # part without p and map to integer (pick only numbers inside the string)
+        print(data['speaker_id'])
         speakers.append(data['speaker_id'])
+
+    # Normalize the speaker IDs to a range of consecutive numbers
+    speakers = normalize_sequence(speakers)
+
+
 
     return file_paths, transcriptions, speakers
 
