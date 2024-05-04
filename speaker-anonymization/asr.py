@@ -7,19 +7,19 @@ from utils import load_audio
 
 from data import get_audio_data_wavs
 
+from config import CONFIG
 # Setup basic logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-BACKBONE = "Somebody433/fine-tuned-vctkdataset"
 
 
 def load_pretrained_model():
     """Load and return the pre-trained Wav2Vec2 model and processor."""
     # Use a well-known pre-trained model that includes a tokenizer and feature extractor.
-    processor = Wav2Vec2Processor.from_pretrained(BACKBONE)
-    model = Wav2Vec2ForCTC.from_pretrained(BACKBONE)
+    processor = Wav2Vec2Processor.from_pretrained(CONFIG.BACKBONE)
+    model = Wav2Vec2ForCTC.from_pretrained(CONFIG.BACKBONE)
     model.eval()  # Set the model to evaluation mode, which deactivates dropout layers.
     logging.info(
         "Loaded Wav2Vec2 large robust model and general processor successfully."

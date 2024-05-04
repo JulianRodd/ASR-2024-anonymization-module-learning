@@ -79,13 +79,11 @@ def calculate_combined_loss(
     # Normalize and square the WER to increase the impact as it approaches 1
     asr_error = min(1.0, max(0.0, asr_error))
 
-    # The closer the WER is to 1, the higher the negative impact
-    scaled_wer = asr_error**2
     # Calculate speaker verification accuracy
     speaker_accuracy = speaker_verification_loss(speakers, pred_speakers)
 
     # Calculate combined loss:
     # Negative impact increases with higher WER due to squaring
-    combined_loss = (wer_weight * scaled_wer) + (asv_weight * speaker_accuracy)
+    combined_loss = (wer_weight * asr_error) + (asv_weight * speaker_accuracy)
 
     return combined_loss, asr_error, speaker_accuracy

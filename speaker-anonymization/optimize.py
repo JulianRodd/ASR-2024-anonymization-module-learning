@@ -1,16 +1,25 @@
 import logging
 import os
 
+import numpy as np
 import optuna
 import soundfile as sf
 import torch
 from asr import load_audio, load_pretrained_model, transcribe_audio
 from asv import SpeakerVerificationModel
 from losses import calculate_combined_loss
-from pedalboard import Distortion, HighpassFilter, LowpassFilter, Pedalboard, PitchShift
-from utils import save_optimization_plots
+from pedalboard import (
+    Distortion,
+    HighpassFilter,
+    LowpassFilter,
+    Pedalboard,
+    PitchShift,
+    time_stretch,
+)
+from utils import save_audio_file, save_optimization_plots
 
 from data import get_audio_data_wavs
+
 
 # Setup logging
 logging.basicConfig(
@@ -39,6 +48,9 @@ def apply_audio_effects(audio, sample_rate, params):
         ],
     )
     processed_audio = board(audio, sample_rate=int(sample_rate))
+    processed_audio = time_stretch(
+        processed_audio, sample_rate, params["time_stretch_factor"]
+    )
     return processed_audio
 
 
@@ -91,6 +103,11 @@ def optimize_params(trial):
             low=3500 - 2 * 750,  # Adjust the bounds as needed
             high=3500 + 2 * 750,
         ),
+        "time_stretch_factor": trial.suggest_float(
+            "time_stretch_factor",
+            low=1.0 - 2 * 0.1,  # Adjust the bounds as needed
+            high=1.0 + 2 * 0.1,
+        ),
     }
     audio_data = []
     for file_path in file_paths:
@@ -105,16 +122,17 @@ def optimize_params(trial):
     trial.set_user_attr("avg_wer", avg_wer)
     trial.set_user_attr("speaker_accuracy", accuracy)
     trial.set_user_attr("combined_loss", combined_loss)
+
     return combined_loss
 
 
 if __name__ == "__main__":
     logging.info("Starting audio effects optimization...\n")
-    file_paths, transcriptions, speakers = get_audio_data_wavs(subset_size=100)
+    file_paths, transcriptions, speakers = get_audio_data_wavs(subset_size=500)
     num_speakers = len(set(speakers))
     processor, asr_model = load_pretrained_model()
     speaker_verification = SpeakerVerificationModel(num_speakers=num_speakers)
-    speaker_verification.finetune_model(speakers, file_paths, n_epochs=20)
+    speaker_verification.finetune_model(speakers, file_paths, n_epochs=50)
     logging.info("Speaker Verification model trained.\n\n")
     # Evaluate the initial model
     logging.info("Evaluating the initial model...\n")
@@ -129,7 +147,7 @@ if __name__ == "__main__":
     study = optuna.create_study(
         direction="minimize", study_name="optimizing_audio_effects_for_anonymization"
     )
-    study.optimize(optimize_params, n_trials=5)
+    study.optimize(optimize_params, n_trials=40)
     logging.info(
         f"Optimization complete. Best Parameters: {study.best_params}, Best Loss: {study.best_value}"
     )
@@ -146,14 +164,14 @@ if __name__ == "__main__":
     anon_folder = "anonymized_files"
     os.makedirs(anon_folder, exist_ok=True)
 
+
+
     for fp in file_paths:
-        audio, sample_rate = load_audio(
-            fp
-        )  # Ensure to capture both audio and its sample rate
+        audio, sample_rate = load_audio(fp)  # This should load audio as a numpy array
         processed_audio = apply_audio_effects(audio, sample_rate, best_params)
-        path = os.path.join(anon_folder, os.path.basename(fp))
-        sf.write(
-            path, processed_audio, sample_rate
-        )  # Use the original sample rate or a standardized one if needed
+        path = os.path.join(
+            anon_folder, os.path.splitext(os.path.basename(fp))[0] + ".wav"
+        )
+        save_audio_file(processed_audio, path, sample_rate)
 
     print(f"All anonymized audio files stored in: {anon_folder}")

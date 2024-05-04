@@ -11,12 +11,12 @@ from transformers import Wav2Vec2Model, Wav2Vec2Processor
 from utils import load_audio
 
 from data import get_audio_data_wavs
-
+from config import CONFIG
 
 class SpeakerVerificationModel:
     def __init__(self, num_speakers):
-        self.processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base")
-        self.model = Wav2Vec2Model.from_pretrained("facebook/wav2vec2-base")
+        self.processor = Wav2Vec2Processor.from_pretrained(CONFIG.BACKBONE)
+        self.model = Wav2Vec2Model.from_pretrained(CONFIG.BACKBONE)
 
         for param in self.model.parameters():
             param.requires_grad = False
@@ -110,37 +110,23 @@ class SpeakerVerificationModel:
             predicted_speakers.append(predicted_speaker)
         return predicted_speakers
 
-    def get_speakers_using_waveforms(self, waveforms):
+    def get_speakers_using_waveforms(self, waveforms, sample_rate=16000):
         predicted_speakers = []
+        self.model.eval()
         for waveform in waveforms:
-            predicted_speaker = self.get_speaker_using_waveform(waveform)
+            input_values = self.processor(
+                waveform, sampling_rate=sample_rate, return_tensors="pt"
+            ).input_values.squeeze(0)
+            logits = self.forward(input_values.unsqueeze(0))
+            predicted_speaker = torch.argmax(logits).item()
             predicted_speakers.append(predicted_speaker)
         return predicted_speakers
 
-    def get_speaker_using_waveform(self, waveform):
-        self.model.eval()
-        # Ensure waveform is a 1D tensor
-        waveform = torch.tensor(waveform, dtype=torch.float32).unsqueeze(
-            0
-        )  # Add channel dimension
-        # Validate if resampling is needed
-        if waveform.size(1) != 16000:
-            waveform = self.resampler(waveform)
-
-        # Process waveform through the processor
-        input_values = self.processor(
-            waveform, sampling_rate=16000, return_tensors="pt"
-        ).input_values
-
-        # Predict using the model
-        logits = self.forward(input_values.squeeze(0))
-        predicted_speaker = torch.argmax(logits, dim=1).item()
-        return predicted_speaker
 
 
 # Example of usage
 if __name__ == "__main__":
-    file_paths, _, speakers = get_audio_data_wavs(subset_size=120)
+    file_paths, _, speakers = get_audio_data_wavs(subset_size=100)
 
     print(speakers)
     num_speakers = len(set(speakers))
@@ -149,6 +135,7 @@ if __name__ == "__main__":
     model.finetune_model(
         speakers,
         file_paths,
+        n_epochs=10,
     )
     predicted_speakers = model.get_speakers(
         file_paths,

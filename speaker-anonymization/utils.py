@@ -1,6 +1,7 @@
 import os
 
 import matplotlib.pyplot as plt
+import numpy as np
 import optuna
 import pandas as pd
 import seaborn as sns
@@ -85,3 +86,13 @@ def save_optimization_plots(study, images_dir):
     plt.savefig(plot_path)
 
     print("Saved all optimization plots to:", images_dir)
+
+
+def save_audio_file(audio, path, sample_rate):
+    # Ensure the directory exists
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+
+    # Ensure the audio is in the correct format
+    audio = np.ravel(audio)
+    # Write the file
+    sf.write(path, audio, samplerate=sample_rate, format="WAV", subtype="PCM_16")
