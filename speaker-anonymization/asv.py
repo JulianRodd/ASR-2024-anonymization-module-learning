@@ -3,12 +3,12 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import torchaudio
 import torchaudio.transforms as T
-from sklearn.metrics import accuracy_score
+from losses import speaker_verification_loss
 from torch import nn
 from tqdm import tqdm
 from transformers import Wav2Vec2Model, Wav2Vec2Processor
+from utils import load_audio
 
 from data import get_audio_data_wavs
 
@@ -56,20 +56,12 @@ class SpeakerVerificationModel:
             for file, label in tqdm(
                 zip(files, speaker_labels), total=len(files), desc="Training"
             ):
-                waveform, sample_rate = torchaudio.load(file)
-
-                if waveform.shape[0] > 1:
-                    waveform = waveform.mean(dim=0)
-
-                if sample_rate != 16000:
-                    waveform = self.resampler(waveform)  # Resample to 16000 Hz
+                waveform, sample_rate = load_audio(file)
 
                 waveform = waveform.unsqueeze(0)
-                input_values = (
-                    self.processor(waveform, sampling_rate=16000, return_tensors="pt")
-                    .input_values.squeeze(0)
-                    .squeeze(0)
-                )
+                input_values = self.processor(
+                    waveform, sampling_rate=sample_rate, return_tensors="pt"
+                ).input_values.squeeze(0)
 
                 logits = self.forward(input_values)
                 loss = criterion(logits, torch.tensor([label]))
@@ -85,14 +77,16 @@ class SpeakerVerificationModel:
             self.classifier.state_dict(),
             f"checkpoints/speaker_verification_model_{self.num_speakers}_{n_epochs}_{learning_rate}.pt",
         )
-        self.plot_losses(mean_loss_per_epoch, n_epochs, self.num_speakers, learning_rate)
+        self.plot_losses(
+            mean_loss_per_epoch, n_epochs, self.num_speakers, learning_rate
+        )
 
     def plot_losses(self, mean_loss_per_epoch, num_epochs, num_speakers, learning_rate):
         plt.figure(figsize=(10, 5))
         plt.plot(range(1, num_epochs + 1), mean_loss_per_epoch, marker="o")
         plt.title("Training Mean Loss per Epoch")
         plt.xlabel("Epoch")
-        plt.ylabel("Loss")
+        plt.ylabel("Mean Loss")
         plt.grid(True)
         plt.tight_layout()
 
@@ -107,19 +101,10 @@ class SpeakerVerificationModel:
         self.model.eval()
         predicted_speakers = []
         for file in tqdm(files, desc="Predicting speakers"):
-            waveform, sample_rate = torchaudio.load(file)
-            if waveform.shape[0] > 1:
-                waveform = waveform.mean(dim=0)
-
-            if sample_rate != 16000:
-                waveform = self.resampler(waveform)  # Resample to 16000 Hz
-
-            waveform = waveform.unsqueeze(0)
-            input_values = (
-                self.processor(waveform, sampling_rate=16000, return_tensors="pt")
-                .input_values.squeeze(0)
-                .squeeze(0)
-            )
+            waveform, sample_rate = load_audio(file)
+            input_values = self.processor(
+                waveform, sampling_rate=sample_rate, return_tensors="pt"
+            ).input_values.squeeze(0)
             logits = self.forward(input_values)
             predicted_speaker = torch.argmax(logits).item()
             predicted_speakers.append(predicted_speaker)
@@ -138,7 +123,6 @@ class SpeakerVerificationModel:
         waveform = torch.tensor(waveform, dtype=torch.float32).unsqueeze(
             0
         )  # Add channel dimension
-
         # Validate if resampling is needed
         if waveform.size(1) != 16000:
             waveform = self.resampler(waveform)
@@ -152,11 +136,6 @@ class SpeakerVerificationModel:
         logits = self.forward(input_values.squeeze(0))
         predicted_speaker = torch.argmax(logits, dim=1).item()
         return predicted_speaker
-
-
-def speaker_verification_loss(real_speakers, predicted_speakers):
-    accuracy = accuracy_score(real_speakers, predicted_speakers)
-    return accuracy
 
 
 # Example of usage
