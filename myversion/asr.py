@@ -4,7 +4,7 @@ import jiwer
 import torch
 import torchaudio
 from transformers import Wav2Vec2ForCTC, Wav2Vec2Processor
-
+import soundfile as sf
 from data import get_audio_data_wavs
 
 # Setup basic logging
@@ -15,13 +15,15 @@ logging.basicConfig(
 
 def load_pretrained_model():
     """Load and return the pre-trained Wav2Vec2 model and processor."""
-    processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
-    model = Wav2Vec2ForCTC.from_pretrained("facebook/wav2vec2-base-960h")
-    model.eval()
-    logging.info("Loaded Wav2Vec2 model and processor successfully.")
+    # Use a well-known pre-trained model that includes a tokenizer and feature extractor.
+    processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-large-960h")
+    model = Wav2Vec2ForCTC.from_pretrained("facebook/wav2vec2-large-960h")
+    model.eval()  # Set the model to evaluation mode, which deactivates dropout layers.
+    logging.info("Loaded Wav2Vec2 large robust model and general processor successfully.")
     return processor, model
 
 
+def
 def preprocess_audio(file_path):
     """Load, resample, and convert audio to mono."""
     waveform, sample_rate = torchaudio.load(file_path)
@@ -95,7 +97,7 @@ def main():
 
     transcriptions = []
     for file, truth in zip(files, ground_truths):
-        waveform = preprocess_audio(file)
+        waveform, sr = sf.read(file)
         transcription = transcribe_audio(processor, model, waveform)
         wer = normalized_wer(truth, transcription)
         logging.info(

@@ -1,3 +1,6 @@
+import os
+
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torchaudio
@@ -31,10 +34,22 @@ class SpeakerVerificationModel:
         return logits
 
     def finetune_model(self, speaker_labels, files, n_epochs=10, learning_rate=1e-2):
+        try:
+            cached_model = torch.load(
+                f"checkpoints/speaker_verification_model_{self.num_speakers}_{n_epochs}_{learning_rate}.pt"
+            )
+        except FileNotFoundError:
+            cached_model = None
+        if cached_model:
+            self.classifier.load_state_dict(cached_model)
+            print(
+                f"Loaded cached model for {self.num_speakers} speakers and {n_epochs} epochs."
+            )
+            return
         self.model.train()
         optimizer = torch.optim.Adam(self.classifier.parameters(), lr=learning_rate)
         criterion = nn.CrossEntropyLoss()
-
+        mean_loss_per_epoch = []
         for epoch in range(n_epochs):
             print(f"Starting epoch {epoch + 1}/{n_epochs}")
             losses = []
@@ -62,9 +77,33 @@ class SpeakerVerificationModel:
                 optimizer.step()
                 optimizer.zero_grad()
                 losses.append(loss.item())
+            mean_loss_per_epoch.append(np.mean(losses))
             print("Mean loss:", np.mean(losses))
 
-    def get_speaker(self, files):
+        os.makedirs("checkpoints", exist_ok=True)
+        torch.save(
+            self.classifier.state_dict(),
+            f"checkpoints/speaker_verification_model_{self.num_speakers}_{n_epochs}_{learning_rate}.pt",
+        )
+        self.plot_losses(mean_loss_per_epoch, n_epochs, self.num_speakers, learning_rate)
+
+    def plot_losses(self, mean_loss_per_epoch, num_epochs, num_speakers, learning_rate):
+        plt.figure(figsize=(10, 5))
+        plt.plot(range(1, num_epochs + 1), mean_loss_per_epoch, marker="o")
+        plt.title("Training Mean Loss per Epoch")
+        plt.xlabel("Epoch")
+        plt.ylabel("Loss")
+        plt.grid(True)
+        plt.tight_layout()
+
+        # Save the plot in a specified directory
+        images_dir = f"images/speaker_verification_training_{num_epochs}_{num_speakers}_{learning_rate}"
+        os.makedirs(images_dir, exist_ok=True)
+        plot_path = f"{images_dir}/mean_losses_per_epoch.png"
+        plt.savefig(plot_path)
+        print(f"Loss plot saved to {plot_path}")
+
+    def get_speakers(self, files):
         self.model.eval()
         predicted_speakers = []
         for file in tqdm(files, desc="Predicting speakers"):
@@ -86,6 +125,34 @@ class SpeakerVerificationModel:
             predicted_speakers.append(predicted_speaker)
         return predicted_speakers
 
+    def get_speakers_using_waveforms(self, waveforms):
+        predicted_speakers = []
+        for waveform in waveforms:
+            predicted_speaker = self.get_speaker_using_waveform(waveform)
+            predicted_speakers.append(predicted_speaker)
+        return predicted_speakers
+
+    def get_speaker_using_waveform(self, waveform):
+        self.model.eval()
+        # Ensure waveform is a 1D tensor
+        waveform = torch.tensor(waveform, dtype=torch.float32).unsqueeze(
+            0
+        )  # Add channel dimension
+
+        # Validate if resampling is needed
+        if waveform.size(1) != 16000:
+            waveform = self.resampler(waveform)
+
+        # Process waveform through the processor
+        input_values = self.processor(
+            waveform, sampling_rate=16000, return_tensors="pt"
+        ).input_values
+
+        # Predict using the model
+        logits = self.forward(input_values.squeeze(0))
+        predicted_speaker = torch.argmax(logits, dim=1).item()
+        return predicted_speaker
+
 
 def speaker_verification_loss(real_speakers, predicted_speakers):
     accuracy = accuracy_score(real_speakers, predicted_speakers)
@@ -104,7 +171,7 @@ if __name__ == "__main__":
         speakers,
         file_paths,
     )
-    predicted_speakers = model.get_speaker(
+    predicted_speakers = model.get_speakers(
         file_paths,
     )
     print("Predicted Speakers:", predicted_speakers)

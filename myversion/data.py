@@ -11,7 +11,7 @@ def normalize_sequence(seq):
 
     return normalized_seq
 
-def get_audio_data_wavs():
+def get_audio_data_wavs(subset_size=500):
     dataset_path = 'data/vctk'
     os.makedirs(dataset_path, exist_ok=True)  # Ensure the directory exists
 
@@ -19,7 +19,7 @@ def get_audio_data_wavs():
     dataset = load_dataset('vctk', split='train')
 
     # We'll take a subset for example purposes, e.g., random 100 samples
-    dataset = dataset.shuffle(seed=42).select(range(100))
+    dataset = dataset.shuffle(seed=42).select(range(subset_size))
 
     file_paths = []
     transcriptions = []
@@ -37,8 +37,6 @@ def get_audio_data_wavs():
 
         file_paths.append(destination_file_path)
         transcriptions.append(data['text'])
-        # part without p and map to integer (pick only numbers inside the string)
-        print(data['speaker_id'])
         speakers.append(data['speaker_id'])
 
     # Normalize the speaker IDs to a range of consecutive numbers
