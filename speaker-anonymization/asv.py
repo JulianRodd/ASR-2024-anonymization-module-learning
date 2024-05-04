@@ -105,7 +105,7 @@ class SpeakerVerificationModel:
             input_values = self.processor(
                 waveform, sampling_rate=sample_rate, return_tensors="pt"
             ).input_values.squeeze(0)
-            logits = self.forward(input_values)
+            logits = self.forward(input_values.unsqueeze(0))
             predicted_speaker = torch.argmax(logits).item()
             predicted_speakers.append(predicted_speaker)
         return predicted_speakers
@@ -140,7 +140,7 @@ class SpeakerVerificationModel:
 
 # Example of usage
 if __name__ == "__main__":
-    file_paths, _, speakers = get_audio_data_wavs()
+    file_paths, _, speakers = get_audio_data_wavs(subset_size=120)
 
     print(speakers)
     num_speakers = len(set(speakers))

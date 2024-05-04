@@ -114,7 +114,7 @@ if __name__ == "__main__":
     num_speakers = len(set(speakers))
     processor, asr_model = load_pretrained_model()
     speaker_verification = SpeakerVerificationModel(num_speakers=num_speakers)
-    speaker_verification.finetune_model(speakers, file_paths, n_epochs=1)
+    speaker_verification.finetune_model(speakers, file_paths, n_epochs=20)
     logging.info("Speaker Verification model trained.\n\n")
     # Evaluate the initial model
     logging.info("Evaluating the initial model...\n")
@@ -129,7 +129,7 @@ if __name__ == "__main__":
     study = optuna.create_study(
         direction="minimize", study_name="optimizing_audio_effects_for_anonymization"
     )
-    study.optimize(optimize_params, n_trials=2)
+    study.optimize(optimize_params, n_trials=5)
     logging.info(
         f"Optimization complete. Best Parameters: {study.best_params}, Best Loss: {study.best_value}"
     )
