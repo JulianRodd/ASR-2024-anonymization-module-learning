@@ -1,5 +1,5 @@
 from pedalboard import (
-    Distortion, HighpassFilter, LowpassFilter, Pedalboard, Reverb, Compressor, Chorus, PitchShift, Gain
+    Bitcrush, Convolution, Distortion, HighpassFilter, LowpassFilter, NoiseGate, Pedalboard, Phaser, Reverb, Compressor, Chorus, PitchShift, Gain
 )
 import soundfile as sf
 
@@ -26,16 +26,15 @@ def apply_gain(x, sample_rate, gain_db=-3.0):
     return gain(x, sample_rate)
 
 def process_audio_effects(file_path, effects=[
-       # PitchShift(semitones=-10),
-     # Compressor(threshold_db=-20, ratio=4),
-        #Reverb(room_size=0.5),
-        #Chorus(rate_hz=100, depth=0.5, feedback=0.5),
-       # Distortion(drive_db=40),
+       PitchShift(semitones=-10),
+        Compressor(threshold_db=-20, ratio=4),
+       Reverb(room_size=0.5),
+       Chorus(rate_hz=0),
+       Distortion(drive_db=40),
+        Phaser(rate_hz=60 ),
         HighpassFilter(cutoff_frequency_hz=20),
         LowpassFilter(cutoff_frequency_hz=3000),
-        # Phaser(rate_hz=1.5),
-
-      # FormantFilter(formants=[(500, 1.5), (1000, 0.5), (2000, 1.5)]),
+        Phaser(rate_hz=1.5),
     ]):
     audio, sr = sf.read(file_path)
     board = Pedalboard(effects)

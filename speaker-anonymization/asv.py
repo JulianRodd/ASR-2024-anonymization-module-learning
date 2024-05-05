@@ -15,8 +15,8 @@ from config import CONFIG
 
 class SpeakerVerificationModel:
     def __init__(self, num_speakers):
-        self.processor = Wav2Vec2Processor.from_pretrained(CONFIG.BACKBONE)
-        self.model = Wav2Vec2Model.from_pretrained(CONFIG.BACKBONE)
+        self.processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base")
+        self.model = Wav2Vec2Model.from_pretrained("facebook/wav2vec2-base")
 
         for param in self.model.parameters():
             param.requires_grad = False

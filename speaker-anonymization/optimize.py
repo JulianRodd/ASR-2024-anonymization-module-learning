@@ -14,7 +14,10 @@ from pedalboard import (
     LowpassFilter,
     Pedalboard,
     PitchShift,
+    Bitcrush,
     time_stretch,
+    Chorus,
+    Phaser,
 )
 from utils import save_audio_file, save_optimization_plots
 
@@ -45,6 +48,9 @@ def apply_audio_effects(audio, sample_rate, params):
             PitchShift(semitones=params["pitch_shift_semitones"]),
             HighpassFilter(cutoff_frequency_hz=params["highpass_cutoff"]),
             LowpassFilter(cutoff_frequency_hz=params["lowpass_cutoff"]),
+            Bitcrush(bit_depth=params["bitcrush_bit_depth"]),
+            Chorus(rate_hz=params["chorus_rate_hz"]),
+            Phaser(rate_hz=params["phaser_rate_hz"]),
         ],
     )
     processed_audio = board(audio, sample_rate=int(sample_rate))
@@ -95,8 +101,8 @@ def optimize_params(trial):
         ),
         "highpass_cutoff": trial.suggest_float(
             "highpass_cutoff",
-            low=max(0, 250 - 2 * 125),  # Ensure it does not go below 0 Hz
-            high=250 + 2 * 125,
+            low=max(0, 100 - 2 * 50),  # Ensure it does not go below 0 Hz
+            high=100 + 2 * 50,
         ),
         "lowpass_cutoff": trial.suggest_float(
             "lowpass_cutoff",
@@ -108,6 +114,21 @@ def optimize_params(trial):
             low=1.0 - 2 * 0.1,  # Adjust the bounds as needed
             high=1.0 + 2 * 0.1,
         ),
+        "bitcrush_bit_depth": trial.suggest_int(
+          "bitcrush_bit_depth",
+          low=0,   # Lower boundary set to a moderate reduction for noticeable effect
+          high=12, # Upper boundary set to provide some flexibility while avoiding minimal distortion
+      ),
+        "chorus_rate_hz": trial.suggest_float(
+          "chorus_rate_hz",
+            low=25 - 2 * 12.5,  # Assuming std deviation so that it covers a reasonable range
+            high=25 + 2 * 12.5,
+      ),
+        "phaser_rate_hz": trial.suggest_float(
+          "phaser_rate_hz",
+            low=25 - 2 * 12.5,  # Assuming std deviation so that it covers a reasonable range
+            high=25 + 2 * 12.5,
+      ),
     }
     audio_data = []
     for file_path in file_paths:
