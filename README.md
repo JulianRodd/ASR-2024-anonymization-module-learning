@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-## Examples of Anonymized Speech
 
-
-=======
 ## Male Voice
 
 ### Regular
@@ -25,4 +21,3 @@ https://github.com/JulianRodd/ASR-2024-anonymization-module-learning/assets/4596
 
 https://github.com/JulianRodd/ASR-2024-anonymization-module-learning/assets/45969914/a490d0c3-043b-43f9-ace7-5041de6a703a
 
->>>>>>> 2f13f4ee3de76c292f919146a5d66abae29f0599

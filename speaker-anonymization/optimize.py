@@ -25,8 +25,8 @@ from data import get_audio_data_wavs
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
-
-STUDY_NAME = "optimizing_audio_effects_for_anonymization"
+#!!!
+STUDY_NAME = "ADD_STUDY_NAME_HERE"
 images_dir = "images"
 os.makedirs(images_dir, exist_ok=True)
 
