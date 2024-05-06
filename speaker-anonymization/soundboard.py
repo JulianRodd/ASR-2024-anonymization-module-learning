@@ -26,15 +26,15 @@ def apply_gain(x, sample_rate, gain_db=-3.0):
     return gain(x, sample_rate)
 
 def process_audio_effects(file_path, effects=[
-       PitchShift(semitones=-10),
-        Compressor(threshold_db=-20, ratio=4),
-       Reverb(room_size=0.5),
-       Chorus(rate_hz=0),
-       Distortion(drive_db=40),
-        Phaser(rate_hz=60 ),
-        HighpassFilter(cutoff_frequency_hz=20),
-        LowpassFilter(cutoff_frequency_hz=3000),
-        Phaser(rate_hz=1.5),
+       #PitchShift(semitones=-10),
+        # Compressor(threshold_db=-20, ratio=4),
+        Reverb(room_size=0.5),
+        # Chorus(rate_hz=0),
+        # Distortion(drive_db=40),
+        #   Phaser(rate_hz=60 ),
+        # HighpassFilter(cutoff_frequency_hz=20),
+        # LowpassFilter(cutoff_frequency_hz=3000),
+        # Phaser(rate_hz=1.5),
     ]):
     audio, sr = sf.read(file_path)
     board = Pedalboard(effects)

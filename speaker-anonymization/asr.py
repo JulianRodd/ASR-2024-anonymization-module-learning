@@ -1,26 +1,24 @@
 import logging
 
 import torch
-from transformers import Wav2Vec2ForCTC, Wav2Vec2Processor
+from config import CONFIG
 from losses import average_wer, normalized_wer
+from transformers import Wav2Vec2ForCTC, Wav2Vec2Processor
 from utils import load_audio
 
 from data import get_audio_data_wavs
 
-from config import CONFIG
-# Setup basic logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
 
-
 def load_pretrained_model():
     """Load and return the pre-trained Wav2Vec2 model and processor."""
-    # Use a well-known pre-trained model that includes a tokenizer and feature extractor.
+
     processor = Wav2Vec2Processor.from_pretrained(CONFIG.BACKBONE)
     model = Wav2Vec2ForCTC.from_pretrained(CONFIG.BACKBONE)
-    model.eval()  # Set the model to evaluation mode, which deactivates dropout layers.
+    model.eval()
     logging.info(
         "Loaded Wav2Vec2 large robust model and general processor successfully."
     )

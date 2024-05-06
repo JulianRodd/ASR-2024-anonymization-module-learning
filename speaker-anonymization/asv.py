@@ -23,7 +23,7 @@ class SpeakerVerificationModel:
 
         self.classifier = nn.Linear(self.model.config.hidden_size, num_speakers)
         self.num_speakers = num_speakers
-        self.resampler = T.Resample(orig_freq=48000, new_freq=16000)  # Add a resampler
+        self.resampler = T.Resample(orig_freq=48000, new_freq=16000)
         print(f"Initialized model with {num_speakers} speakers for fine-tuning.")
 
     def forward(self, input_values):
@@ -90,7 +90,7 @@ class SpeakerVerificationModel:
         plt.grid(True)
         plt.tight_layout()
 
-        # Save the plot in a specified directory
+
         images_dir = f"images/speaker_verification_training_{num_epochs}_{num_speakers}_{learning_rate}"
         os.makedirs(images_dir, exist_ok=True)
         plot_path = f"{images_dir}/mean_losses_per_epoch.png"
@@ -124,7 +124,7 @@ class SpeakerVerificationModel:
 
 
 
-# Example of usage
+
 if __name__ == "__main__":
     file_paths, _, speakers = get_audio_data_wavs(subset_size=100)
 

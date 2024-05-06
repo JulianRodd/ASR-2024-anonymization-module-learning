@@ -1,8 +1,8 @@
-PWD /Users/julianroddeman/Documents/Repositories/Master/ASR-2024-anonymization-module-learning/paper
+PWD /Users/julianroddeman/Documents/Repositories/Master/ASR-2024-anonymization-module-learning/paper_julian
 INPUT /usr/local/texlive/2023/texmf.cnf
 INPUT /usr/local/texlive/2023/texmf-dist/web2c/texmf.cnf
 INPUT /usr/local/texlive/2023/texmf-var/web2c/pdftex/pdflatex.fmt
-INPUT /Users/julianroddeman/Documents/Repositories/Master/ASR-2024-anonymization-module-learning/paper/s1080491_anonymization.tex
+INPUT /Users/julianroddeman/Documents/Repositories/Master/ASR-2024-anonymization-module-learning/paper_julian/s1080491_anonymization.tex
 OUTPUT s1080491_anonymization.log
 INPUT /usr/local/texlive/2023/texmf-dist/tex/latex/base/article.cls
 INPUT /usr/local/texlive/2023/texmf-dist/tex/latex/base/article.cls

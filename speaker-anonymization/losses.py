@@ -22,9 +22,8 @@ def normalized_wer(actual, predicted):
         ]
     )
 
-    # Ensure the input is not empty after transformation
     if not actual.strip() or not predicted.strip():
-        return 1.0  # Return the worst score if inputs are empty or only whitespace
+        return 1.0
 
     measures = jiwer.compute_measures(
         actual,
@@ -74,16 +73,13 @@ def calculate_combined_loss(
         asr_error (float): Average Word Error Rate.
         speaker_accuracy (float): Speaker verification accuracy.
     """
-    # Calculate average Word Error Rate (WER)
+
     asr_error = average_wer(transcriptions, predictions)
-    # Normalize and square the WER to increase the impact as it approaches 1
+
     asr_error = min(1.0, max(0.0, asr_error))
 
-    # Calculate speaker verification accuracy
     speaker_accuracy = speaker_verification_loss(speakers, pred_speakers)
 
-    # Calculate combined loss:
-    # Negative impact increases with higher WER due to squaring
     combined_loss = (wer_weight * asr_error) + (asv_weight * speaker_accuracy)
 
     return combined_loss, asr_error, speaker_accuracy
