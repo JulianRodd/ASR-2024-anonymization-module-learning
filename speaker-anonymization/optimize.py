@@ -18,6 +18,7 @@ from pedalboard import (
     time_stretch,
     Chorus,
     Phaser,
+    Gain
 )
 from utils import save_audio_file, save_optimization_plots
 
@@ -51,6 +52,7 @@ def apply_audio_effects(audio, sample_rate, params):
             Bitcrush(bit_depth=params["bitcrush_bit_depth"]),
             Chorus(rate_hz=params["chorus_rate_hz"]),
             Phaser(rate_hz=params["phaser_rate_hz"]),
+            Gain(gain_db=params["gain_db"]),
         ],
     )
     processed_audio = board(audio, sample_rate=int(sample_rate))
@@ -129,6 +131,11 @@ def optimize_params(trial):
             low=25 - 2 * 12.5,  # Assuming std deviation so that it covers a reasonable range
             high=25 + 2 * 12.5,
       ),
+        "gain_db": trial.suggest_float(
+          "gain_db",
+            low=0 - 2 * 6,  # Assuming std deviation so that it covers a reasonable range
+            high=0 + 2 * 6,
+      ),
     }
     audio_data = []
     for file_path in file_paths:
@@ -168,7 +175,7 @@ if __name__ == "__main__":
     study = optuna.create_study(
         direction="minimize", study_name="optimizing_audio_effects_for_anonymization"
     )
-    study.optimize(optimize_params, n_trials=40)
+    study.optimize(optimize_params, n_trials=100)
     logging.info(
         f"Optimization complete. Best Parameters: {study.best_params}, Best Loss: {study.best_value}"
     )
