@@ -16,7 +16,17 @@ class Config:
         self.MAX_AGE = max_age
         self.ACCENT = accent
         self.REGION = region
-        self.STUDY_NAME = f"samples-{self.SUBSET_SIZE}_gender-{self.GENDER}_min_age-{self.MIN_AGE}_max_age-{self.MAX_AGE}_accent-{self.ACCENT}_region-{self.REGION}"
+        self.STUDY_NAME = f"samples-{self.SUBSET_SIZE}"
+        if gender is not None:
+            self.STUDY_NAME += f"_gender-{self.GENDER}"
+        if min_age is not None:
+            self.STUDY_NAME += f"_min_age-{self.MIN_AGE}"
+        if max_age is not None:
+            self.STUDY_NAME += f"_max_age-{self.MAX_AGE}"
+        if accent is not None:
+            self.STUDY_NAME += f"_accent-{self.ACCENT}"
+        if region is not None:
+            self.STUDY_NAME += f"_region-{self.REGION}"
 
     # General
     STORAGE_NAME = f"sqlite:///optimize_audio_effects_for_anonymization.db"
