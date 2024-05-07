@@ -33,7 +33,7 @@ class Config:
 
     # Speaker Identification Config
     SPI_BACKBONE = "facebook/wav2vec2-base"
-    SPEAKER_IDENTIFICATION_EPOCHS = 10
+    SPEAKER_IDENTIFICATION_EPOCHS = 30
 
     # Combined Loss Config
     WER_WEIGHT = 0.5
