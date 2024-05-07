@@ -1,4 +1,5 @@
 import os
+import pickle
 
 from datasets import load_dataset
 from pydub import AudioSegment
@@ -15,28 +16,41 @@ def normalize_sequence(seq):
 
 
 # categories in the VCTK dataset
-  # 'age': '23',
-  # 'gender': 'F' or 'M',
-  # 'accent': 'English',
-  # 'region': 'Southern England',
-def get_audio_data_wavs(subset_size=500, gender = None, max_age = None, min_age = None, accent = None, region = None):
-
-
+# 'age': '23',
+# 'gender': 'F' or 'M',
+# 'accent': 'English',
+# 'region': 'Southern England',
+def get_audio_data_wavs(
+    CONFIG,
+    subset_size=500,
+    gender=None,
+    max_age=None,
+    min_age=None,
+    accent=None,
+    region=None,
+):
+    os.makedirs(CONFIG.CACHE_FOLDER, exist_ok=True)
+    cache_file = f"{CONFIG.CACHE_FOLDER}/cache_{subset_size}_{gender}_{max_age}_{min_age}_{accent}_{region}.pkl".replace(
+        " ", "_"
+    )
+    if os.path.exists(cache_file):
+        with open(cache_file, "rb") as f:
+            return pickle.load(f)
     dataset_path = "data/vctk"
     os.makedirs(dataset_path, exist_ok=True)
 
     dataset = load_dataset("vctk", split="train")
 
     if gender:
-        dataset = dataset[dataset['gender'] == gender]
+        dataset = dataset.filter(lambda example: example["gender"] == gender)
     if max_age:
-        dataset = dataset[dataset['age'] <= max_age]
+        dataset = dataset.filter(lambda example: int(example["age"]) <= max_age)
     if min_age:
-        dataset = dataset[dataset['age'] >= min_age]
+        dataset = dataset.filter(lambda example: int(example["age"]) >= min_age)
     if accent:
-        dataset = dataset[dataset['accent'] == accent]
+        dataset = dataset.filter(lambda example: example["accent"] == accent)
     if region:
-        dataset = dataset[dataset['region'] == region]
+        dataset = dataset.filter(lambda example: example["region"] == region)
 
     dataset = dataset.shuffle(seed=42).select(range(subset_size))
 
@@ -58,6 +72,9 @@ def get_audio_data_wavs(subset_size=500, gender = None, max_age = None, min_age 
         speakers.append(data["speaker_id"])
 
     speakers = normalize_sequence(speakers)
+
+    with open(cache_file, "wb") as f:
+        pickle.dump((file_paths, transcriptions, speakers), f)
 
     return file_paths, transcriptions, speakers
 

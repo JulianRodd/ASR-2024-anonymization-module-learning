@@ -4,19 +4,20 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torchaudio.transforms as T
-from losses import speaker_verification_loss
 from torch import nn
 from tqdm import tqdm
 from transformers import Wav2Vec2Model, Wav2Vec2Processor
-from utils import load_audio
 
-from data import get_audio_data_wavs
-from config import CONFIG
+from speaker_anonymization.data import get_audio_data_wavs
+from speaker_anonymization.losses import speaker_verification_loss
+from speaker_anonymization.utils import load_audio
 
-class SpeakerVerificationModel:
-    def __init__(self, num_speakers):
-        self.processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base")
-        self.model = Wav2Vec2Model.from_pretrained("facebook/wav2vec2-base")
+
+class SpeakerIdentificationModel:
+    def __init__(self, num_speakers, CONFIG):
+        self.study_name = CONFIG.STUDY_NAME
+        self.processor = Wav2Vec2Processor.from_pretrained(CONFIG.SPI_BACKBONE)
+        self.model = Wav2Vec2Model.from_pretrained(CONFIG.SPI_BACKBONE)
 
         for param in self.model.parameters():
             param.requires_grad = False
@@ -36,7 +37,7 @@ class SpeakerVerificationModel:
     def finetune_model(self, speaker_labels, files, n_epochs=10, learning_rate=1e-2):
         try:
             cached_model = torch.load(
-                f"checkpoints/speaker_verification_model_{self.num_speakers}_{n_epochs}_{learning_rate}.pt"
+                f"checkpoints/{self.study_name}/speaker_verification_model_{self.num_speakers}_{n_epochs}_{learning_rate}.pt"
             )
         except FileNotFoundError:
             cached_model = None
@@ -72,10 +73,11 @@ class SpeakerVerificationModel:
             mean_loss_per_epoch.append(np.mean(losses))
             print("Mean loss:", np.mean(losses))
 
-        os.makedirs("checkpoints", exist_ok=True)
+        local_dir = f"checkpoints/{self.study_name}"
+        os.makedirs(local_dir, exist_ok=True)
         torch.save(
             self.classifier.state_dict(),
-            f"checkpoints/speaker_verification_model_{self.num_speakers}_{n_epochs}_{learning_rate}.pt",
+            f"{local_dir}/speaker_verification_model_{self.num_speakers}_{n_epochs}_{learning_rate}.pt",
         )
         self.plot_losses(
             mean_loss_per_epoch, n_epochs, self.num_speakers, learning_rate
@@ -90,8 +92,7 @@ class SpeakerVerificationModel:
         plt.grid(True)
         plt.tight_layout()
 
-
-        images_dir = f"images/speaker_verification_training_{num_epochs}_{num_speakers}_{learning_rate}"
+        images_dir = f"images/{self.study_name}/speaker_verification_training_{num_epochs}_{num_speakers}_{learning_rate}"
         os.makedirs(images_dir, exist_ok=True)
         plot_path = f"{images_dir}/mean_losses_per_epoch.png"
         plt.savefig(plot_path)
@@ -123,15 +124,13 @@ class SpeakerVerificationModel:
         return predicted_speakers
 
 
-
-
 if __name__ == "__main__":
     file_paths, _, speakers = get_audio_data_wavs(subset_size=100)
 
     print(speakers)
     num_speakers = len(set(speakers))
 
-    model = SpeakerVerificationModel(num_speakers)
+    model = SpeakerIdentificationModel(num_speakers)
     model.finetune_model(
         speakers,
         file_paths,
