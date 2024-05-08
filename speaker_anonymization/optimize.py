@@ -169,27 +169,29 @@ def optimize_audio_effects(CONFIG):
 
         return combined_loss
 
-    logging.info("Starting audio effects optimization...\n")
+    logging.info("\n\nStarting audio effects optimization...\n\n")
+
+    logging.info("Loading data...\n")
     file_paths, transcriptions, speakers = get_audio_data_wavs(
         CONFIG,
-        subset_size=CONFIG.SUBSET_SIZE,
-        gender=CONFIG.GENDER,
-        max_age=CONFIG.MAX_AGE,
-        min_age=CONFIG.MIN_AGE,
-        accent=CONFIG.ACCENT,
-        region=CONFIG.REGION,
     )
     num_speakers = len(set(speakers))
+
+    logging.info("Loading ASR model...\n")
     processor, asr_model = load_pretrained_model(CONFIG)
+
+    logging.info("Loading Speaker Identification model...\n")
     speaker_identification = SpeakerIdentificationModel(
         num_speakers=num_speakers, CONFIG=CONFIG
     )
+
+    logging.info("Finetuning Speaker Identification model...\n")
     speaker_identification.finetune_model(
         speakers, file_paths, n_epochs=CONFIG.SPEAKER_IDENTIFICATION_EPOCHS
     )
-    logging.info("Speaker Verification model trained.\n\n")
+    logging.info("Speaker Identification model trained.\n\n")
 
-    logging.info("Evaluating the initial model...\n")
+    logging.info("Evaluating the initial models...\n")
     initial_audio_data = []
     for file_path in file_paths:
         audio, sr = load_audio(file_path)
@@ -198,6 +200,7 @@ def optimize_audio_effects(CONFIG):
         initial_audio_data, transcriptions, speakers
     )
 
+    logging.info(f"Starting audio parameter optimization...\n")
     study = optuna.create_study(
         direction="minimize",
         study_name=CONFIG.STUDY_NAME,
@@ -211,9 +214,10 @@ def optimize_audio_effects(CONFIG):
         n_jobs=CONFIG.CONFIG_N_JOBS,
     )
     logging.info(
-        f"Optimization complete. Best Parameters: {study.best_params}, Best Loss: {study.best_value}"
+        f"Optimization complete. Best Parameters: {study.best_params}, Best Loss: {study.best_value}\n"
     )
 
+    logging.info("Saving optimization plots...\n")
     images_dir = (
         f"images/{study.study_name}_{str(num_speakers)}_speakers_{study.best_value:.2f}"
     )
@@ -221,6 +225,8 @@ def optimize_audio_effects(CONFIG):
 
     save_optimization_plots(study, images_dir)
 
+
+    logging.info("Anonymizing audio files using the best parameters...\n")
     best_params = study.best_params
     anon_folder = f"{CONFIG.ANONYMIZED_FOLDER}/{CONFIG.STUDY_NAME}"
     os.makedirs(anon_folder, exist_ok=True)

@@ -2,21 +2,24 @@ class Config:
 
     def __init__(
         self,
-        subset_size=500,
+        n_speakers=10,
+        n_samples_per_speaker=10,
         gender=None,
         min_age=None,
         max_age=None,
-        accent="English",
-        region="Southern England",
+        accent=None,
+        region=None,
     ):
 
-        self.SUBSET_SIZE = subset_size
+        self.N_SPEAKERS = n_speakers
+        self.N_SAMPLES_PER_SPEAKER = n_samples_per_speaker
         self.GENDER = gender
         self.MIN_AGE = min_age
         self.MAX_AGE = max_age
         self.ACCENT = accent
         self.REGION = region
-        self.STUDY_NAME = f"samples-{self.SUBSET_SIZE}"
+
+        self.STUDY_NAME = f"n_speakers-{self.N_SPEAKERS}_n_samples_per_speaker-{self.N_SAMPLES_PER_SPEAKER}"
         if gender is not None:
             self.STUDY_NAME += f"_gender-{self.GENDER}"
         if min_age is not None:
@@ -37,6 +40,7 @@ class Config:
     NUM_TRIALS = 100
     SHOW_PROGRESS_BAR = False
     CONFIG_N_JOBS = 1  # Number of jobs to run in parallel, -1 means use all
+    SEED = 42
 
     # ASR CONFIG
     ASR_BACKBONE = "Somebody433/fine-tuned-vctkdataset"

@@ -8,6 +8,7 @@ from torch import nn
 from tqdm import tqdm
 from transformers import Wav2Vec2Model, Wav2Vec2Processor
 
+from speaker_anonymization.config import Config
 from speaker_anonymization.data import get_audio_data_wavs
 from speaker_anonymization.losses import speaker_verification_loss
 from speaker_anonymization.utils import load_audio
@@ -125,7 +126,8 @@ class SpeakerIdentificationModel:
 
 
 if __name__ == "__main__":
-    file_paths, _, speakers = get_audio_data_wavs(subset_size=100)
+    config = Config(n_speakers=10, n_samples_per_speaker=10)
+    file_paths, _, speakers = get_audio_data_wavs(CONFIG=config)
 
     print(speakers)
     num_speakers = len(set(speakers))
