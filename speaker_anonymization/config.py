@@ -2,6 +2,7 @@ class Config:
 
     def __init__(
         self,
+        num_trials=100,
         n_speakers=10,
         n_samples_per_speaker=10,
         gender=None,
@@ -10,7 +11,7 @@ class Config:
         accent=None,
         region=None,
     ):
-
+        self.NUM_TRIALS = num_trials
         self.N_SPEAKERS = n_speakers
         self.N_SAMPLES_PER_SPEAKER = n_samples_per_speaker
         self.GENDER = gender
@@ -37,7 +38,6 @@ class Config:
     IMAGES_DIR = "images"
     CACHE_FOLDER = "cache"
     ANONYMIZED_FOLDER = "anonymized_audio"
-    NUM_TRIALS = 100
     SHOW_PROGRESS_BAR = False
     CONFIG_N_JOBS = 1  # Number of jobs to run in parallel, -1 means use all
     SEED = 42

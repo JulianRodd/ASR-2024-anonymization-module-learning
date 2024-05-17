@@ -1,6 +1,13 @@
 
 # Anonymization Pipeline Using Optuna and Pedalboard
-
+To install all required packages, run:
+```
+pip install -r requirements.txt
+```
+To see optuna dashboard, run:
+```
+optuna-dashboard sqlite:///optimize_audio_effects_for_anonymization.db
+```
 
 ## Male Voice
 
