@@ -68,7 +68,7 @@ def get_audio_data_wavs(CONFIG):
     logging.info(f"Filtered samples: {len(dataset)}\n")
     # make a distinct set of speaker_ids
     logging.info("Picking speakers...")
-    speaker_ids = set(data["speaker_id"] for data in dataset)
+    speaker_ids = set(dataset["speaker_id"])
     logging.info(f"Total speakers: {len(speaker_ids)}")
     speaker_ids = random.sample(sorted(speaker_ids), n_speakers)
     logging.info(f"Selected {len(speaker_ids)} speakers for anonymization.\n")
