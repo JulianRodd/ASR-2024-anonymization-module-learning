@@ -2,7 +2,7 @@ class Config:
 
     def __init__(
         self,
-        num_trials=100,
+        num_trials=10,
         n_speakers=10,
         n_samples_per_speaker=10,
         gender=None,
@@ -20,7 +20,7 @@ class Config:
         self.ACCENT = accent
         self.REGION = region
 
-        self.STUDY_NAME = f"n_speakers-{self.N_SPEAKERS}_n_samples_per_speaker-{self.N_SAMPLES_PER_SPEAKER}"
+        self.STUDY_NAME = f"new_loss_n_speakers-{self.N_SPEAKERS}_n_samples_per_speaker-{self.N_SAMPLES_PER_SPEAKER}"
         if gender is not None:
             self.STUDY_NAME += f"_gender-{self.GENDER}"
         if min_age is not None:
@@ -50,8 +50,12 @@ class Config:
     SPEAKER_IDENTIFICATION_EPOCHS = 30
 
     # Combined Loss Config
-    WER_WEIGHT = 0.5
-    SPI_WEIGHT = 0.5
+    WER_WEIGHT = 0.2
+    SPI_WEIGHT = 0.2
+    AGE_WEIGHT = 0.2
+    GENDER_WEIGHT = 0.2
+    ACCENT_WEIGHT = 0.1
+    REGION_WEIGHT = 0.1
 
 
     # Sound Effects Config

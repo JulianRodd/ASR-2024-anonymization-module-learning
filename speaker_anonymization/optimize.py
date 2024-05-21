@@ -61,7 +61,7 @@ def optimize_audio_effects(CONFIG):
         )
         return processed_audio
 
-    def evaluate_asr_and_asv(audio_data, transcriptions, speakers):
+    def evaluate_asr_and_asv(audio_data, transcriptions, speakers, ages, genders, accents, regions):
         """Evaluate ASR and ASV models and log results using the modified audio."""
         predictions = []
         for waveform, sr in audio_data:
@@ -69,24 +69,36 @@ def optimize_audio_effects(CONFIG):
             prediction = transcribe_audio(processor, asr_model, waveform)
             predictions.append(prediction)
 
-        predicted_speakers = speaker_identification.get_speakers_using_waveforms(
+        predicted_speakers, predicted_ages, predicted_genders, predicted_accents, predicted_regions = speaker_identification.get_speakers_using_waveforms(
             [a for a, _ in audio_data]
         )
-        combined_loss, avg_wer, accuracy = calculate_combined_loss(
+        combined_loss, avg_wer, speaker_accuracy, age_accuracy, gender_accuracy, accent_accuracy, region_accuracy = calculate_combined_loss(
             transcriptions,
             predictions,
             speakers,
             predicted_speakers,
+            ages,
+            predicted_ages,
+            genders,
+            predicted_genders,
+            accents,
+            predicted_accents,
+            regions,
+            predicted_regions,
             wer_weight=CONFIG.WER_WEIGHT,
             spi_weight=CONFIG.SPI_WEIGHT,
+            age_weight=CONFIG.AGE_WEIGHT,
+            gender_weight=CONFIG.GENDER_WEIGHT,
+            accent_weight=CONFIG.ACCENT_WEIGHT,
+            region_weight=CONFIG.REGION_WEIGHT
         )
         logging.info("Evaluation complete.\n")
         logging.info(f"Average WER: {avg_wer}\n")
-        logging.info(f"Speaker Verification Accuracy: {accuracy}\n")
+        logging.info(f"Speaker Verification Accuracy: {speaker_accuracy}\n")
 
         logging.info(f"Combined Loss: {combined_loss}\n\n\n")
 
-        return predictions, predicted_speakers, avg_wer, accuracy, combined_loss
+        return predictions, predicted_speakers, avg_wer, speaker_accuracy, combined_loss
 
     def optimize_params(trial):
         """Define and apply hyperparameter optimization using normal distribution for parameters."""
@@ -160,7 +172,7 @@ def optimize_audio_effects(CONFIG):
             audio_data.append((processed_audio, sr))
 
         _, _, avg_wer, accuracy, combined_loss = evaluate_asr_and_asv(
-            audio_data, transcriptions, speakers
+            audio_data, transcriptions, speakers, ages, genders, accents, regions
         )
 
         trial.set_user_attr("avg_wer", avg_wer)
@@ -172,7 +184,7 @@ def optimize_audio_effects(CONFIG):
     logging.info("\n\nStarting audio effects optimization...\n\n")
 
     logging.info("Loading data...\n")
-    file_paths, transcriptions, speakers = get_audio_data_wavs(
+    file_paths, transcriptions, speakers, ages, genders, accents, regions = get_audio_data_wavs(
         CONFIG,
     )
     num_speakers = len(set(speakers))
@@ -187,7 +199,7 @@ def optimize_audio_effects(CONFIG):
 
     logging.info("Finetuning Speaker Identification model...\n")
     speaker_identification.finetune_model(
-        speakers, file_paths, n_epochs=CONFIG.SPEAKER_IDENTIFICATION_EPOCHS
+        speakers, ages, genders, accents, regions, file_paths, n_epochs=CONFIG.SPEAKER_IDENTIFICATION_EPOCHS
     )
     logging.info("Speaker Identification model trained.\n\n")
 
@@ -197,7 +209,7 @@ def optimize_audio_effects(CONFIG):
         audio, sr = load_audio(file_path)
         initial_audio_data.append((audio, sr))
     _, _, avg_wer, accuracy, combined_loss = evaluate_asr_and_asv(
-        initial_audio_data, transcriptions, speakers
+        initial_audio_data, transcriptions, speakers, ages, genders, accents, regions
     )
 
     logging.info(f"Starting audio parameter optimization...\n")

@@ -51,14 +51,22 @@ def average_wer(actual_transcriptions, predicted_transcriptions):
 
 
 def calculate_combined_loss(
-    transcriptions, predictions, speakers, pred_speakers, wer_weight=0.7, spi_weight=0.3
+    transcriptions, predictions, speakers, pred_speakers, ages, pred_ages, genders, pred_genders, accents, pred_accents, regions, pred_regions, wer_weight=0.5, spi_weight=0.2, gender_weight=0.1, age_weight=0.1, accent_weight=0.05, region_weight=0.05
 ):
     asr_error = average_wer(transcriptions, predictions)
 
     asr_error = min(1.0, max(0.0, asr_error))
 
     speaker_accuracy = speaker_verification_loss(speakers, pred_speakers)
+    
+    age_accuracy = speaker_verification_loss(ages, pred_ages)
+    
+    gender_accuracy = speaker_verification_loss(genders, pred_genders)
+    
+    accent_accuracy = speaker_verification_loss(accents, pred_accents)
+    
+    region_accuracy = speaker_verification_loss(regions, pred_regions)
 
-    combined_loss = (wer_weight * asr_error) + (spi_weight * speaker_accuracy)
+    combined_loss = (wer_weight * asr_error) + (spi_weight * speaker_accuracy) + (gender_weight * gender_accuracy) + (age_weight * age_accuracy) + (accent_weight * accent_accuracy) + (region_weight * region_accuracy)
 
-    return combined_loss, asr_error, speaker_accuracy
+    return combined_loss, asr_error, speaker_accuracy, age_accuracy, gender_accuracy, accent_accuracy, region_accuracy

@@ -19,6 +19,16 @@ def normalize_sequence(seq):
     logging.debug("Sequence normalized.")
     return normalized_seq
 
+def map_gender_to_int(gender_seq):
+    gender_mapping = {'M': 0, 'F': 1}
+    return [gender_mapping[gender] for gender in gender_seq]
+
+def normalize_strings(seq):
+    unique_values = sorted(set(seq))
+    mapping = {value: idx for idx, value in enumerate(unique_values)}
+    normalized_seq = [mapping[value] for value in seq]
+    logging.debug("String sequence normalized.")
+    return normalized_seq, mapping
 
 def get_audio_data_wavs(CONFIG):
     n_speakers = CONFIG.N_SPEAKERS
@@ -47,7 +57,7 @@ def get_audio_data_wavs(CONFIG):
 
     logging.info("Downloading dataset...")
     dataset = load_dataset(
-        "vctk", split="train", cache_dir=CONFIG.CACHE_FOLDER, trust_remote_code=True
+        "vctk", split="train", cache_dir=CONFIG.CACHE_FOLDER
     )
 
     filters = {
@@ -88,6 +98,10 @@ def get_audio_data_wavs(CONFIG):
     file_paths = []
     transcriptions = []
     speakers = []
+    gender_arr = []
+    age_arr = []
+    accent_arr = []
+    region_arr = []
 
     print(f"Selected {len(selected_data)} samples for anonymization.\n")
     for data in selected_data:
@@ -103,12 +117,20 @@ def get_audio_data_wavs(CONFIG):
         file_paths.append(destination_file_path)
         transcriptions.append(data["text"])
         speakers.append(data["speaker_id"])
+        gender_arr.append(data["gender"])
+        age_arr.append(data["age"])
+        accent_arr.append(data["accent"])
+        region_arr.append(data["region"])
 
     speakers = normalize_sequence(speakers)
+    age_arr = normalize_sequence(age_arr)
+    gender_arr = map_gender_to_int(gender_arr)
+    accent_arr, accent_mapping = normalize_strings(accent_arr)
+    region_arr, region_mapping = normalize_strings(region_arr)
 
     # Saving data to cache
     with open(cache_file, "wb") as f:
-        pickle.dump((file_paths, transcriptions, speakers), f)
+        pickle.dump((file_paths, transcriptions, speakers, gender_arr, age_arr, accent_arr, region_arr), f)
         logging.info(f"Data cached to {cache_file}")
 
-    return file_paths, transcriptions, speakers
+    return file_paths, transcriptions, speakers, age_arr, gender_arr, accent_arr, region_arr

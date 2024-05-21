@@ -23,7 +23,11 @@ class SpeakerIdentificationModel:
         for param in self.model.parameters():
             param.requires_grad = False
 
-        self.classifier = nn.Linear(self.model.config.hidden_size, num_speakers)
+        self.speaker_classifier = nn.Linear(self.model.config.hidden_size, num_speakers)
+        self.age_classifier = nn.Linear(self.model.config.hidden_size, 100) #assuming max age is 100
+        self.gender_classifier = nn.Linear(self.model.config.hidden_size, 2)
+        self.accent_classifier = nn.Linear(self.model.config.hidden_size, num_speakers)
+        self.region_classifier = nn.Linear(self.model.config.hidden_size, num_speakers)
         self.num_speakers = num_speakers
         self.resampler = T.Resample(orig_freq=48000, new_freq=16000)
         print(f"Initialized model with {num_speakers} speakers for fine-tuning.")
@@ -32,10 +36,14 @@ class SpeakerIdentificationModel:
         with torch.no_grad():
             outputs = self.model(input_values)
         embeddings = outputs.last_hidden_state.mean(dim=1)
-        logits = self.classifier(embeddings)
-        return logits
+        speaker_logits = self.speaker_classifier(embeddings)
+        age_logits = self.age_classifier(embeddings)
+        gender_logits = self.gender_classifier(embeddings)
+        accent_logits = self.accent_classifier(embeddings)
+        region_logits = self.region_classifier(embeddings)
+        return speaker_logits, age_logits, gender_logits, accent_logits, region_logits
 
-    def finetune_model(self, speaker_labels, files, n_epochs=10, learning_rate=1e-2):
+    def finetune_model(self, speaker_labels, age_labels, gender_labels, accent_labels, region_labels, files, n_epochs=10, learning_rate=1e-2):
         try:
             cached_model = torch.load(
                 f"checkpoints/{self.study_name}/speaker_verification_model_{self.num_speakers}_{n_epochs}_{learning_rate}.pt"
@@ -43,20 +51,31 @@ class SpeakerIdentificationModel:
         except FileNotFoundError:
             cached_model = None
         if cached_model:
-            self.classifier.load_state_dict(cached_model)
+            self.speaker_classifier.load_state_dict(cached_model['speaker_classifier'])
+            self.age_classifier.load_state_dict(cached_model['age_classifier'])
+            self.gender_classifier.load_state_dict(cached_model['gender_classifier'])
+            self.accent_classifier.load_state_dict(cached_model['accent_classifier'])
+            self.region_classifier.load_state_dict(cached_model['region_classifier'])
             print(
                 f"Loaded cached model for {self.num_speakers} speakers and {n_epochs} epochs."
             )
             return
         self.model.train()
-        optimizer = torch.optim.Adam(self.classifier.parameters(), lr=learning_rate)
+        optimizer = torch.optim.Adam(
+            list(self.speaker_classifier.parameters()) + 
+            list(self.age_classifier.parameters()) + 
+            list(self.gender_classifier.parameters()) + 
+            list(self.accent_classifier.parameters()) + 
+            list(self.region_classifier.parameters()), 
+            lr=learning_rate
+        )
         criterion = nn.CrossEntropyLoss()
         mean_loss_per_epoch = []
         for epoch in range(n_epochs):
             print(f"Starting epoch {epoch + 1}/{n_epochs}")
             losses = []
-            for file, label in tqdm(
-                zip(files, speaker_labels), total=len(files), desc="Training"
+            for file, speaker_label, age_label, gender_label, accent_label, region_label in tqdm(
+                zip(files, speaker_labels, age_labels, gender_labels, accent_labels, region_labels), total=len(files), desc="Training"
             ):
                 waveform, sample_rate = load_audio(file)
 
@@ -65,8 +84,13 @@ class SpeakerIdentificationModel:
                     waveform, sampling_rate=sample_rate, return_tensors="pt"
                 ).input_values.squeeze(0)
 
-                logits = self.forward(input_values)
-                loss = criterion(logits, torch.tensor([label]))
+                speaker_logits, age_logits, gender_logits, accent_logits, region_logits = self.forward(input_values)
+                loss_speaker = criterion(speaker_logits, torch.tensor([speaker_label]))
+                loss_age = criterion(age_logits, torch.tensor([age_label], dtype=torch.long))
+                loss_gender = criterion(gender_logits, torch.tensor([gender_label], dtype=torch.long))
+                loss_accent = criterion(accent_logits, torch.tensor([accent_label], dtype=torch.long))
+                loss_region = criterion(region_logits, torch.tensor([region_label], dtype=torch.long))
+                loss = loss_speaker + loss_age + loss_gender + loss_accent + loss_region
                 loss.backward()
                 optimizer.step()
                 optimizer.zero_grad()
@@ -77,8 +101,8 @@ class SpeakerIdentificationModel:
         local_dir = f"checkpoints/{self.study_name}"
         os.makedirs(local_dir, exist_ok=True)
         torch.save(
-            self.classifier.state_dict(),
-            f"{local_dir}/speaker_verification_model_{self.num_speakers}_{n_epochs}_{learning_rate}.pt",
+            self.speaker_classifier.state_dict(),
+            f"{local_dir}/new_loss_speaker_verification_model_{self.num_speakers}_{n_epochs}_{learning_rate}.pt",
         )
         self.plot_losses(
             mean_loss_per_epoch, n_epochs, self.num_speakers, learning_rate
@@ -102,27 +126,51 @@ class SpeakerIdentificationModel:
     def get_speakers(self, files):
         self.model.eval()
         predicted_speakers = []
+        predicted_ages = []
+        predicted_genders = []
+        predicted_accents = []
+        predicted_regions = []
         for file in tqdm(files, desc="Predicting speakers"):
             waveform, sample_rate = load_audio(file)
             input_values = self.processor(
                 waveform, sampling_rate=sample_rate, return_tensors="pt"
             ).input_values.squeeze(0)
-            logits = self.forward(input_values.unsqueeze(0))
-            predicted_speaker = torch.argmax(logits).item()
+            speaker_logits, age_logits, gender_logits, accent_logits, region_logits = self.forward(input_values.unsqueeze(0))
+            predicted_speaker = torch.argmax(speaker_logits).item()
+            predicted_age = torch.argmax(age_logits).item()
+            predicted_gender = torch.argmax(gender_logits).item()
+            predicted_accent = torch.argmax(accent_logits).item()
+            predicted_region = torch.argmax(region_logits).item()
             predicted_speakers.append(predicted_speaker)
-        return predicted_speakers
+            predicted_ages.append(predicted_age)
+            predicted_genders.append(predicted_gender)
+            predicted_accents.append(predicted_accent)
+            predicted_regions.append(predicted_region)
+        return predicted_speakers, predicted_ages, predicted_genders, predicted_accents, predicted_regions
 
     def get_speakers_using_waveforms(self, waveforms, sample_rate=16000):
         predicted_speakers = []
+        predicted_ages = []
+        predicted_genders = []
+        predicted_accents = []
+        predicted_regions = []
         self.model.eval()
         for waveform in waveforms:
             input_values = self.processor(
                 waveform, sampling_rate=sample_rate, return_tensors="pt"
             ).input_values.squeeze(0)
-            logits = self.forward(input_values.unsqueeze(0))
-            predicted_speaker = torch.argmax(logits).item()
+            speaker_logits, age_logits, gender_logits, accent_logits, region_logits = self.forward(input_values.unsqueeze(0))
+            predicted_speaker = torch.argmax(speaker_logits).item()
+            predicted_age = torch.argmax(age_logits).item()
+            predicted_gender = torch.argmax(gender_logits).item()
+            predicted_accent = torch.argmax(accent_logits).item()
+            predicted_region = torch.argmax(region_logits).item()
             predicted_speakers.append(predicted_speaker)
-        return predicted_speakers
+            predicted_ages.append(predicted_age)
+            predicted_genders.append(predicted_gender)
+            predicted_accents.append(predicted_accent)
+            predicted_regions.append(predicted_region)
+        return predicted_speakers, predicted_ages, predicted_genders, predicted_accents, predicted_regions
 
 
 if __name__ == "__main__":
