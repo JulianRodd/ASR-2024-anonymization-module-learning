@@ -39,7 +39,7 @@ class Config:
     CACHE_FOLDER = "cache"
     ANONYMIZED_FOLDER = "anonymized_audio"
     SHOW_PROGRESS_BAR = False
-    CONFIG_N_JOBS = 1  # Number of jobs to run in parallel, -1 means use all
+    CONFIG_N_JOBS = -1  # Number of jobs to run in parallel, -1 means use all
     SEED = 42
 
     # ASR CONFIG

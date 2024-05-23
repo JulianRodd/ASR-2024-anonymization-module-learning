@@ -20,7 +20,7 @@ def run_optimizations(configs):
 if __name__ == "__main__":
     print("Ik vertouw mezelf niet om op een knop te drukken en wil bevestiging dat dit ding gestart is dankuwel")
 
-    BASE_CONFIG = Config(n_speakers=2, n_samples_per_speaker=2)
+    BASE_CONFIG = Config(n_speakers=10, n_samples_per_speaker=10)
     #FEMALE_ONLY_CONFIG = Config(gender="F")
     #MALE_ONLY_CONFIG = Config(num_trials=1, gender="M")
     

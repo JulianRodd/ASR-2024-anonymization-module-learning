@@ -95,6 +95,10 @@ def optimize_audio_effects(CONFIG):
         logging.info("Evaluation complete.\n")
         logging.info(f"Average WER: {avg_wer}\n")
         logging.info(f"Speaker Verification Accuracy: {speaker_accuracy}\n")
+        logging.info(f"Gender Accuracy: {gender_accuracy}\n")
+        logging.info(f"Age Accuracy: {age_accuracy}\n")
+        logging.info(f"Accent Accuracy: {accent_accuracy}\n")
+        logging.info(f"Region Verification Accuracy: {region_accuracy}\n")
 
         logging.info(f"Combined Loss: {combined_loss}\n\n\n")
 

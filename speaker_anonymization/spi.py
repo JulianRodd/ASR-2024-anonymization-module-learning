@@ -46,7 +46,7 @@ class SpeakerIdentificationModel:
     def finetune_model(self, speaker_labels, age_labels, gender_labels, accent_labels, region_labels, files, n_epochs=10, learning_rate=1e-2):
         try:
             cached_model = torch.load(
-                f"checkpoints/{self.study_name}/speaker_verification_model_{self.num_speakers}_{n_epochs}_{learning_rate}.pt"
+                f"checkpoints/{self.study_name}/new_loss_speaker_verification_model_{self.num_speakers}_{n_epochs}_{learning_rate}.pt"
             )
         except FileNotFoundError:
             cached_model = None
@@ -71,9 +71,19 @@ class SpeakerIdentificationModel:
         )
         criterion = nn.CrossEntropyLoss()
         mean_loss_per_epoch = []
+        mean_speaker_loss_per_epoch = []
+        mean_age_loss_per_epoch = []
+        mean_gender_loss_per_epoch = []
+        mean_accent_loss_per_epoch =[]
+        mean_region_loss_per_epoch = []
         for epoch in range(n_epochs):
             print(f"Starting epoch {epoch + 1}/{n_epochs}")
             losses = []
+            losses_speaker = []
+            losses_age = []
+            losses_gender = []
+            losses_accent = []
+            losses_region = []
             for file, speaker_label, age_label, gender_label, accent_label, region_label in tqdm(
                 zip(files, speaker_labels, age_labels, gender_labels, accent_labels, region_labels), total=len(files), desc="Training"
             ):
@@ -95,7 +105,17 @@ class SpeakerIdentificationModel:
                 optimizer.step()
                 optimizer.zero_grad()
                 losses.append(loss.item())
+                losses_speaker.append(loss_speaker.item())
+                losses_age.append(loss_age.item())
+                losses_gender.append(loss_gender.item())
+                losses_accent.append(loss_accent.item())
+                losses_region.append(loss_region.item())
             mean_loss_per_epoch.append(np.mean(losses))
+            mean_speaker_loss_per_epoch.append(np.mean(losses_speaker))
+            mean_age_loss_per_epoch.append(np.mean(losses_age))
+            mean_gender_loss_per_epoch.append(np.mean(losses_gender))
+            mean_accent_loss_per_epoch.append(np.mean(losses_accent))
+            mean_region_loss_per_epoch.append(np.mean(losses_region))
             print("Mean loss:", np.mean(losses))
 
         local_dir = f"checkpoints/{self.study_name}"
@@ -105,13 +125,28 @@ class SpeakerIdentificationModel:
             f"{local_dir}/new_loss_speaker_verification_model_{self.num_speakers}_{n_epochs}_{learning_rate}.pt",
         )
         self.plot_losses(
-            mean_loss_per_epoch, n_epochs, self.num_speakers, learning_rate
+            mean_loss_per_epoch, n_epochs, self.num_speakers, learning_rate, "combined"
+        )
+        self.plot_losses(
+            mean_speaker_loss_per_epoch, n_epochs, self.num_speakers, learning_rate, "speaker"
+        )
+        self.plot_losses(
+            mean_age_loss_per_epoch, n_epochs, self.num_speakers, learning_rate, "age"
+        )
+        self.plot_losses(
+            mean_gender_loss_per_epoch, n_epochs, self.num_speakers, learning_rate, "gender"
+        )
+        self.plot_losses(
+            mean_accent_loss_per_epoch, n_epochs, self.num_speakers, learning_rate, "accent"
+        )
+        self.plot_losses(
+            mean_region_loss_per_epoch, n_epochs, self.num_speakers, learning_rate, "region"
         )
 
-    def plot_losses(self, mean_loss_per_epoch, num_epochs, num_speakers, learning_rate):
+    def plot_losses(self, mean_loss_per_epoch, num_epochs, num_speakers, learning_rate, kind_of_loss):
         plt.figure(figsize=(10, 5))
         plt.plot(range(1, num_epochs + 1), mean_loss_per_epoch, marker="o")
-        plt.title("Training Mean Loss per Epoch")
+        plt.title("Training Mean Loss per Epoch" + kind_of_loss)
         plt.xlabel("Epoch")
         plt.ylabel("Mean Loss")
         plt.grid(True)
@@ -119,7 +154,7 @@ class SpeakerIdentificationModel:
 
         images_dir = f"images/{self.study_name}/speaker_verification_training_{num_epochs}_{num_speakers}_{learning_rate}"
         os.makedirs(images_dir, exist_ok=True)
-        plot_path = f"{images_dir}/mean_losses_per_epoch.png"
+        plot_path = f"{images_dir}/mean_losses_per_epoch_{kind_of_loss}.png"
         plt.savefig(plot_path)
         print(f"Loss plot saved to {plot_path}")
 
