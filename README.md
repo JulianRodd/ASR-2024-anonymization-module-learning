@@ -155,8 +155,18 @@ optuna-dashboard sqlite:///optimize_audio_effects_for_anonymization.db
       <td>272</td>
       <td>Distortion</td>
       <td>12.95 dB</td>
-      <td rowspan="9"><audio controls><source src="input_combined.mp3" type="audio/mpeg"></audio></td>
-      <td rowspan="9"><audio controls><source src="pseudo_combined.mp3" type="audio/mpeg"></audio></td>
+      <td rowspan="9">
+      Female
+        https://github.com/JulianRodd/ASR-2024-anonymization-module-learning/assets/45969914/3c6c30a6-c14b-41ca-8b68-ed0525e0238b
+      Male
+        https://github.com/JulianRodd/ASR-2024-anonymization-module-learning/assets/45969914/6fefc5e9-5f73-47d0-95a4-27ccde00ac8d
+      </td>
+      <td rowspan="9">
+      Female
+        https://github.com/JulianRodd/ASR-2024-anonymization-module-learning/assets/45969914/f9fd2cd0-ded0-45b5-a743-e26c23a79ff3
+      Male
+        https://github.com/JulianRodd/ASR-2024-anonymization-module-learning/assets/45969914/28e18df3-4dc0-42ee-b918-ef3929c74441
+      </td>
     </tr>
     <tr>
       <td>avgWER</td>
