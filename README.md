@@ -36,14 +36,14 @@ optuna-dashboard sqlite:///optimize_audio_effects_for_anonymization.db
       <td rowspan="9">
       
 
-https://github.com/JulianRodd/ASR-2024-anonymization-module-learning/assets/45969914/f886ee27-16ef-479f-a170-8fe07bf2ec83
+![https://github.com/JulianRodd/ASR-2024-anonymization-module-learning/assets/45969914/f886ee27-16ef-479f-a170-8fe07bf2ec83]()
 
 
       </td>
       <td rowspan="9">
       
 
-https://github.com/JulianRodd/ASR-2024-anonymization-module-learning/assets/45969914/ad68359f-9ffb-455c-ad78-90c377bfa3c4
+![https://github.com/JulianRodd/ASR-2024-anonymization-module-learning/assets/45969914/ad68359f-9ffb-455c-ad78-90c377bfa3c4]()
 
 
       </td>
