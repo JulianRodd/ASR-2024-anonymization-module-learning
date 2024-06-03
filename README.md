@@ -33,8 +33,8 @@ optuna-dashboard sqlite:///optimize_audio_effects_for_anonymization.db
       <td>294</td>
       <td>Distortion</td>
       <td>3.29 dB</td>
-      <td rowspan="9"><audio controls><source src="input_male.mp3" type="audio/mpeg"></audio></td>
-      <td rowspan="9"><audio controls><source src="pseudo_male.mp3" type="audio/mpeg"></audio></td>
+      <td rowspan="9"><audio controls><source src="result_audio_files/a_male_only/original.flac" type="audio/mpeg"></audio></td>
+      <td rowspan="9"><audio controls><source src="result_audio_files/a_male_only/psuedonymized.wav" type="audio/mpeg"></audio></td>
     </tr>
     <tr>
       <td>avgWER</td>
