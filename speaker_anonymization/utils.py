@@ -54,9 +54,9 @@ def save_optimization_plots(study, images_dir):
         results.append(
             {
                 "Trial": trial.number,
-                "Average WER": trial.user_attrs["avg_wer"],
-                "1 - Speaker Accuracy": 1 - trial.user_attrs["speaker_accuracy"],
-                "Combined Loss": trial.user_attrs["combined_loss"],
+                "Average WER": trial.user_attrs.get("avg_wer", 0),
+                "1 - Speaker Accuracy": 1 - trial.user_attrs.get("speaker_accuracy", 0),
+                "Combined Loss": trial.user_attrs.get("combined_loss", 0),
             }
         )
 

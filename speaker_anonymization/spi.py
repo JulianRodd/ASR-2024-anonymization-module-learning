@@ -44,6 +44,9 @@ class SpeakerIdentificationModel:
         return speaker_logits, age_logits, gender_logits, accent_logits, region_logits
 
     def finetune_model(self, speaker_labels, age_labels, gender_labels, accent_labels, region_labels, files, n_epochs=10, learning_rate=1e-2):
+        def correct_label(label, max_value):
+            return min(max(label, 0), max_value - 1)
+            
         try:
             cached_model = torch.load(
                 f"checkpoints/{self.study_name}/new_loss_speaker_verification_model_{self.num_speakers}_{n_epochs}_{learning_rate}.pt"
@@ -84,9 +87,15 @@ class SpeakerIdentificationModel:
             losses_gender = []
             losses_accent = []
             losses_region = []
+            
             for file, speaker_label, age_label, gender_label, accent_label, region_label in tqdm(
                 zip(files, speaker_labels, age_labels, gender_labels, accent_labels, region_labels), total=len(files), desc="Training"
             ):
+                speaker_label = correct_label(speaker_label, self.num_speakers)
+                age_label = correct_label(age_label, 100)
+                gender_label = correct_label(gender_label, 2)
+                accent_label = correct_label(accent_label, self.num_speakers)  # Adjust this range if needed
+                region_label = correct_label(region_label, self.num_speakers) 
                 waveform, sample_rate = load_audio(file)
 
                 waveform = waveform.unsqueeze(0)
@@ -96,10 +105,10 @@ class SpeakerIdentificationModel:
 
                 speaker_logits, age_logits, gender_logits, accent_logits, region_logits = self.forward(input_values)
                 loss_speaker = criterion(speaker_logits, torch.tensor([speaker_label]))
-                loss_age = criterion(age_logits, torch.tensor([age_label], dtype=torch.long))
-                loss_gender = criterion(gender_logits, torch.tensor([gender_label], dtype=torch.long))
-                loss_accent = criterion(accent_logits, torch.tensor([accent_label], dtype=torch.long))
-                loss_region = criterion(region_logits, torch.tensor([region_label], dtype=torch.long))
+                loss_age = criterion(age_logits, torch.tensor([age_label]))
+                loss_gender = criterion(gender_logits, torch.tensor([gender_label]))
+                loss_accent = criterion(accent_logits, torch.tensor([accent_label]))
+                loss_region = criterion(region_logits, torch.tensor([region_label]))
                 loss = loss_speaker + loss_age + loss_gender + loss_accent + loss_region
                 loss.backward()
                 optimizer.step()
@@ -120,10 +129,20 @@ class SpeakerIdentificationModel:
 
         local_dir = f"checkpoints/{self.study_name}"
         os.makedirs(local_dir, exist_ok=True)
-        torch.save(
-            self.speaker_classifier.state_dict(),
-            f"{local_dir}/new_loss_speaker_verification_model_{self.num_speakers}_{n_epochs}_{learning_rate}.pt",
-        )
+        # Create a dictionary to hold the state dictionaries of all classifiers
+        checkpoint = {
+            'speaker_classifier': self.speaker_classifier.state_dict(),
+            'age_classifier': self.age_classifier.state_dict(),
+            'gender_classifier': self.gender_classifier.state_dict(),
+            'accent_classifier': self.accent_classifier.state_dict(),
+            'region_classifier': self.region_classifier.state_dict()
+        }
+
+        # Define the file path for saving
+        checkpoint_path = f"{local_dir}/new_loss_speaker_verification_model_{self.num_speakers}_{n_epochs}_{learning_rate}.pt"
+
+        # Save the checkpoint
+        torch.save(checkpoint, checkpoint_path)
         self.plot_losses(
             mean_loss_per_epoch, n_epochs, self.num_speakers, learning_rate, "combined"
         )
