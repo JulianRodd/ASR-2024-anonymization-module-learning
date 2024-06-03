@@ -21,7 +21,7 @@ optuna-dashboard sqlite:///optimize_audio_effects_for_anonymization.db
 
 | Experiment          | Metric       | Score    | Parameter       | Value          | Input Audio File | Pseudonymized Audio File |
 |---------------------|--------------|----------|-----------------|----------------|------------------|--------------------------|
-| **(a) - Male Only** | Best Trial   | 294      | Distortion      | 3.29 dB        | [Input Male](https://github.com/JulianRodd/ASR-2024-anonymization-module-learning/assets/45969914/f886ee27-16ef-479f-a170-8fe07bf2ec83) | [Pseudonymized Male](https://github.com/JulianRodd/ASR-2024-anonymization-module-learning/assets/45969914/ad68359f-9ffb-455c-ad78-90c377bfa3c4) |
+| **(a) - Male Only** | Best Trial   | 294      | Distortion      | 3.29 dB        | https://github.com/JulianRodd/ASR-2024-anonymization-module-learning/assets/45969914/f886ee27-16ef-479f-a170-8fe07bf2ec83 | [Pseudonymized Male](https://github.com/JulianRodd/ASR-2024-anonymization-module-learning/assets/45969914/ad68359f-9ffb-455c-ad78-90c377bfa3c4) |
 |                     | avgWER       | 0.160    | PitchShift      | -0.90 semitones|                  |                          |
 |                     | spvAcc       | 0.180    | HighpassFilter  | 187.50 Hz      |                  |                          |
 |                     | psnyLoss     | 0.170    | LowpassFilter   | 4999.71 Hz     |                  |                          |
