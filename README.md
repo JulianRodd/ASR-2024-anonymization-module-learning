@@ -95,18 +95,10 @@ optuna-dashboard sqlite:///optimize_audio_effects_for_anonymization.db
       <td>Distortion</td>
       <td>1.82 dB</td>
       <td rowspan="9">
-        
-
-https://github.com/JulianRodd/ASR-2024-anonymization-module-learning/assets/45969914/c77ffa7d-257f-45e1-a85f-31ef9f93bed0
-
-
+        https://github.com/JulianRodd/ASR-2024-anonymization-module-learning/assets/45969914/c77ffa7d-257f-45e1-a85f-31ef9f93bed0
       </td>
       <td rowspan="9">
-      
-
-https://github.com/JulianRodd/ASR-2024-anonymization-module-learning/assets/45969914/3fa74f62-85d0-42ea-b74e-a7bd33a97118
-
-
+        https://github.com/JulianRodd/ASR-2024-anonymization-module-learning/assets/45969914/3fa74f62-85d0-42ea-b74e-a7bd33a97118
       </td>
     </tr>
     <tr>
