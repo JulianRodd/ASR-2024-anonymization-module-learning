@@ -26,10 +26,10 @@ def run_optimizations(configs):
 
 
 if __name__ == "__main__":
-    BASE_CONFIG = Config(n_speakers=2, n_samples_per_speaker=2)
-    # FEMALE_ONLY_CONFIG = Config(gender="F")
-    # MALE_ONLY_CONFIG = Config(num_trials=1, gender="M")
+   # BASE_CONFIG = Config()
+    #FEMALE_ONLY_CONFIG = Config(gender="F")
+    MALE_ONLY_CONFIG = Config(gender="M")
 
     #configs = [BASE_CONFIG]
-    # run_optimization(BASE_CONFIG)
-    run_optimizations([BASE_CONFIG])
+    run_optimization(MALE_ONLY_CONFIG)
+    # run_optimizations([BASE_CONFIG])
