@@ -102,7 +102,7 @@ def optimize_audio_effects(CONFIG):
 
         logging.info(f"Combined Loss: {combined_loss}\n\n\n")
 
-        return predictions, predicted_speakers, avg_wer, speaker_accuracy, combined_loss
+        return predictions, predicted_speakers, avg_wer, speaker_accuracy, combined_loss, age_accuracy, gender_accuracy, accent_accuracy, region_accuracy
 
     def optimize_params(trial):
         """Define and apply hyperparameter optimization using normal distribution for parameters."""
@@ -175,13 +175,17 @@ def optimize_audio_effects(CONFIG):
             processed_audio = apply_audio_effects(audio, float(sr), params)
             audio_data.append((processed_audio, sr))
 
-        _, _, avg_wer, accuracy, combined_loss = evaluate_asr_and_asv(
+        _, _, avg_wer, accuracy, combined_loss, age_accuracy, gender_accuracy, accent_accuracy, region_accuracy = evaluate_asr_and_asv(
             audio_data, transcriptions, speakers, ages, genders, accents, regions
         )
 
         trial.set_user_attr("avg_wer", avg_wer)
         trial.set_user_attr("speaker_accuracy", accuracy)
         trial.set_user_attr("combined_loss", combined_loss)
+        trial.set_user_attr("age_acc", age_accuracy)
+        trial.set_user_attr("gender_acc", gender_accuracy)
+        trial.set_user_attr("accent_acc", accent_accuracy)
+        trial.set_user_attr("region_acc", region_accuracy)
 
         return combined_loss
 
@@ -212,7 +216,7 @@ def optimize_audio_effects(CONFIG):
     for file_path in file_paths:
         audio, sr = load_audio(file_path)
         initial_audio_data.append((audio, sr))
-    _, _, avg_wer, accuracy, combined_loss = evaluate_asr_and_asv(
+    _, _, avg_wer, accuracy, combined_loss, age_accuracy, gender_accuracy, accent_accuracy, region_accuracy = evaluate_asr_and_asv(
         initial_audio_data, transcriptions, speakers, ages, genders, accents, regions
     )
 

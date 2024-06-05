@@ -57,6 +57,10 @@ def save_optimization_plots(study, images_dir):
                 "Average WER": trial.user_attrs.get("avg_wer", 0),
                 "1 - Speaker Accuracy": 1 - trial.user_attrs.get("speaker_accuracy", 0),
                 "Combined Loss": trial.user_attrs.get("combined_loss", 0),
+                "1 - Age Accuracy": 1 - trial.user_attrs.get("age_acc", 0),
+                "1 - Gender Accuracy": 1 - trial.user_attrs.get("gender_acc", 0),
+                "1 - Accent Accuracy": 1 - trial.user_attrs.get("accent_acc", 0),
+                "1 - Region Accuracy": 1 - trial.user_attrs.get("region_acc", 0)
             }
         )
 
@@ -73,6 +77,34 @@ def save_optimization_plots(study, images_dir):
         y="1 - Speaker Accuracy",
         marker="o",
         label="1 - Speaker Accuracy",
+    )
+    sns.lineplot(
+        data=results_df,
+        x="Trial",
+        y="1 - Age Accuracy",
+        marker="o",
+        label="1 - Age Accuracy",
+    )
+    sns.lineplot(
+        data=results_df,
+        x="Trial",
+        y="1 - Gender Accuracy",
+        marker="o",
+        label="1 - Gender Accuracy",
+    )
+    sns.lineplot(
+        data=results_df,
+        x="Trial",
+        y="1 - Accent Accuracy",
+        marker="o",
+        label="1 - Accent Accuracy",
+    )
+    sns.lineplot(
+        data=results_df,
+        x="Trial",
+        y="1 - Region Accuracy",
+        marker="o",
+        label="1 - Region Accuracy",
     )
     sns.lineplot(
         data=results_df, x="Trial", y="Combined Loss", marker="o", label="Combined Loss"
