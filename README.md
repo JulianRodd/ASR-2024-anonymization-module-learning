@@ -1,5 +1,5 @@
 
-# Anonymization Pipeline Using Optuna and Pedalboard
+## Optimizing Privacy in Speech Data: A Lightweight Data-Driven Pseudonymization Pipeline using Pedalboard and Optuna
 To install all required packages, run:
 ```
 pip install -r requirements.txt
@@ -8,16 +8,15 @@ To see optuna dashboard, run:
 ```
 optuna-dashboard sqlite:///optimize_audio_effects_for_anonymization.db
 ```
+To run experiments:
+```
+python main.py
+```
 
-# Results for Male, Female, and Combined Optuna Studies
+## Results for Male, Female, and Combined Optuna Studies
 
-## Experiment Results and Final Parameters
+### Experiment Results and Final Parameters
 
-## Results
-
-# Results for Male, Female, and Combined Optuna Studies
-
-## Experiment Results and Final Parameters
 
 | Experiment          | Metric       | Score    | Parameter       | Value          | Input Audio File | Pseudonymized Audio File |
 |---------------------|--------------|----------|-----------------|----------------|------------------|--------------------------|

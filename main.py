@@ -9,8 +9,7 @@ def run_optimization(config):
 
 
 def run_optimizations(configs):
-    # Repeat each config to fill up 50% of the CPU cores
-    amount_of_runners = (cpu_count() // 2 // len(configs))
+    amount_of_runners = cpu_count() // 2 // len(configs)
 
     configs = configs * amount_of_runners
 
@@ -26,10 +25,9 @@ def run_optimizations(configs):
 
 
 if __name__ == "__main__":
-   # BASE_CONFIG = Config()
-    #FEMALE_ONLY_CONFIG = Config(gender="F")
+    BASE_CONFIG = Config()
+    FEMALE_ONLY_CONFIG = Config(gender="F")
     MALE_ONLY_CONFIG = Config(gender="M")
 
-    #configs = [BASE_CONFIG]
-    run_optimization(MALE_ONLY_CONFIG)
-    # run_optimizations([BASE_CONFIG])
+    configs = [BASE_CONFIG, FEMALE_ONLY_CONFIG, MALE_ONLY_CONFIG]
+    run_optimizations(configs)
